@@ -98,8 +98,8 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
         {
             ///
             /// Pay attention to this bit. The engine is querying a
-            /// PaleryTargetEntityView and not a EnemyEntityView.
-            /// this is more than a sophistication, it actually the implementation
+            /// PlayerTargetEntityView and not a EnemyEntityView.
+            /// this is more than a sophistication, it's actually the implementation
             /// of the rule that every engine must use its own set of
             /// EntityViews to promote encapsulation and modularity
             ///
