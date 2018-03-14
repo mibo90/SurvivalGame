@@ -1,6 +1,6 @@
 namespace Svelto.ECS.Example.Survive.HUD
 {
-	public class HUDDamageEntityView: EntityView
+	public class HUDHealthEntityView: EntityView
     {
         public IHealthComponent        healthComponent;
     }

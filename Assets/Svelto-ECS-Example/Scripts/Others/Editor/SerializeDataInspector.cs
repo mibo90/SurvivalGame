@@ -15,3 +15,4 @@ public class SerializeDataInspector : Editor
         }
     }
 }
+

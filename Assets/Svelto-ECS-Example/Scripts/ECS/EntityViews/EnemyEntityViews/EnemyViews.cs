@@ -15,8 +15,8 @@ namespace Svelto.ECS.Example.Survive.Enemies
         public IRigidBodyComponent        rigidBodyComponent;
     }
 
-    public class EnemyTargetEntityView : EntityView
-    {
-        public IPositionComponent         targetPositionComponent;
-    }
+    //public class EnemyTargetEntityView : EntityView
+    //{
+    //    public IPositionComponent         targetPositionComponent;
+    //}
 }

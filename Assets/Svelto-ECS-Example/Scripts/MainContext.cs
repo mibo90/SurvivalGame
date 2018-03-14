@@ -4,6 +4,7 @@ using Svelto.ECS.Example.Survive.Player;
 using Svelto.ECS.Example.Survive.Player.Gun;
 using Svelto.ECS.Example.Survive.Sound;
 using Svelto.ECS.Example.Survive.HUD;
+using Svelto.ECS.Example.Survive.Bonus;
 using Svelto.Context;
 using Svelto.ECS.Example.Survive.Camera;
 using UnityEngine;
@@ -131,12 +132,15 @@ namespace Svelto.ECS.Example.Survive
             //between engines
             Sequencer playerDamageSequence = new Sequencer();
             Sequencer enemyDamageSequence = new Sequencer();
+            Sequencer enemyWaveSequence = new Sequencer();
+            Sequencer enemySpawnSequence = new Sequencer();
+            Sequencer bonusHealthSequence = new Sequencer();
             
             //wrap non testable unity static classes, so that 
             //can be mocked if needed.
             IRayCaster rayCaster = new RayCaster();
             ITime      time      = new Survive.Time();
-            
+
             //Player related engines. ALL the dependecies must be solved at this point
             //through constructor injection.
             var playerHealthEngine = new HealthEngine(playerDamageSequence);
@@ -151,15 +155,20 @@ namespace Svelto.ECS.Example.Survive
             var enemyHealthEngine = new HealthEngine(enemyDamageSequence);
             var enemyAttackEngine = new EnemyAttackEngine(playerDamageSequence, time);
             var enemyMovementEngine = new EnemyMovementEngine();
-            var enemySpawnerEngine = new EnemySpawnerEngine(factory, _entityFactory);
+            var enemySpawnerEngine = new EnemySpawnerEngine(enemyWaveSequence, enemySpawnSequence, factory, _entityFactory);
             var enemyDeathEngine = new EnemyDeathEngine(entityFunctions);
-            
+            var enemyWaveEngine = new EnemyWaveEngine(enemyWaveSequence);
+            //bonus engines
+            var bonusHealthEngine = new BonusHealthEngine(bonusHealthSequence);
             //hud and sound engines
             var hudEngine = new HUDEngine(time);
+            var enemyCountEngine = new EnemyCountEngine();
             var damageSoundEngine = new DamageSoundEngine();
-            
+            var bonusSoundEngine = new BonusSoundEngine();
+
             //The ISequencer implementaton is very simple, but allows to perform
             //complex concatenation including loops and conditional branching.
+            #region "Setting Sequences"
             playerDamageSequence.SetSequence(
                 new Steps //sequence of steps, this is a dictionary!
                 { 
@@ -204,13 +213,58 @@ namespace Svelto.ECS.Example.Survive
                         new To
                         { 
                             {  DamageCondition.Damage, new IStep[] { enemyAnimationEngine, damageSoundEngine }  },
-                            {  DamageCondition.Dead, new IStep[] { enemyMovementEngine, 
-                                enemyAnimationEngine, playerShootingEngine, enemySpawnerEngine, damageSoundEngine, enemyDeathEngine }  },
+                            {  DamageCondition.Dead, new IStep[] { enemyMovementEngine,enemyAnimationEngine, playerShootingEngine,
+                                enemySpawnerEngine, enemyCountEngine,damageSoundEngine, enemyDeathEngine }  },
                         }  
                     }  
                 }
             );
-
+            enemyWaveSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        enemySpawnerEngine,
+                        new To
+                        {
+                            enemyWaveEngine,
+                        }
+                    },
+                    {
+                        enemyWaveEngine,
+                        new To
+                        {
+                            {WaveCondition.Next, new IStep[] {enemySpawnerEngine, enemyCountEngine, hudEngine } },
+                            {WaveCondition.Last, new IStep[] { enemySpawnerEngine, enemyCountEngine, hudEngine } },
+                            {WaveCondition.Stop, new IStep[] { hudEngine } },
+                        }
+                    }
+                }
+                );
+            enemySpawnSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        enemySpawnerEngine,
+                        new To
+                        {
+                            enemyMovementEngine,
+                        }
+                    }
+                }
+                );
+            bonusHealthSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        bonusHealthEngine,
+                        new To
+                        {
+                            { new IStep[]{ playerHealthEngine,hudEngine, bonusSoundEngine } }
+                        }
+                    }
+                }
+                );
+            #endregion
             //Mandatory step to make engines work
             //Player engines
             _enginesRoot.AddEngine(playerMovementEngine);
@@ -221,16 +275,21 @@ namespace Svelto.ECS.Example.Survive
             _enginesRoot.AddEngine(new PlayerGunShootingFXsEngine());
             //enemy engines
             _enginesRoot.AddEngine(enemySpawnerEngine);
+            _enginesRoot.AddEngine(enemyWaveEngine);
             _enginesRoot.AddEngine(enemyAttackEngine);
             _enginesRoot.AddEngine(enemyMovementEngine);
             _enginesRoot.AddEngine(enemyAnimationEngine);
             _enginesRoot.AddEngine(enemyHealthEngine);
             _enginesRoot.AddEngine(enemyDeathEngine);
+            //bonus engines
+            _enginesRoot.AddEngine(bonusHealthEngine);
             //other engines
             _enginesRoot.AddEngine(new CameraFollowTargetEngine(time));
             _enginesRoot.AddEngine(damageSoundEngine);
+            _enginesRoot.AddEngine(bonusSoundEngine);
             _enginesRoot.AddEngine(hudEngine);
             _enginesRoot.AddEngine(new ScoreEngine(scoreOnEnemyKilledObserver));
+            _enginesRoot.AddEngine(enemyCountEngine);
         }
         
         /// <summary>

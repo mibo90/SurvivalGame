@@ -1,8 +1,9 @@
+using Svelto.Tasks.Enumerators;
 using System.Collections;
 
 namespace Svelto.ECS.Example.Survive.Enemies
 {
-    public class EnemyMovementEngine : IQueryingEntityViewEngine, IStep<DamageInfo>
+    public class EnemyMovementEngine : IQueryingEntityViewEngine, IStep<DamageInfo>, IStep<EnemyMovementInfo>
     {
         public IEntityViewsDB entityViewsDB { set; private get; }
 
@@ -15,7 +16,7 @@ namespace Svelto.ECS.Example.Survive.Enemies
         {
             while (true)
             {
-                var enemyTargetEntityViews = entityViewsDB.QueryEntityViews<EnemyTargetEntityView>();
+                var enemyTargetEntityViews = entityViewsDB.QueryEntityViews<TargetEntityView>();
 
                 if (enemyTargetEntityViews.Count > 0)
                 {
@@ -44,9 +45,31 @@ namespace Svelto.ECS.Example.Survive.Enemies
             entityView.rigidBodyComponent.isKinematic = true;
         }
 
+        IEnumerator ModifyMovementSpeed(EnemyMovementInfo info)
+        {
+            int targetId = info.entityID;
+            EnemyEntityView entityView=null;
+
+            // I dont feel like this is a good solution, but I'm not sure how else I can know when the entities have 
+            // finnished building.
+            while (entityView == null)
+            {
+                yield return null;
+                entityViewsDB.TryQueryEntityView(targetId, out entityView);
+            }
+
+            entityView.movementComponent.moveSpeed += info.movementSpeed;
+        }
+
         public void Step(ref DamageInfo token, int condition)
         {
             StopEnemyOnDeath(token.entityDamagedID);
         }
+
+        public void Step(ref EnemyMovementInfo token, int condition)
+        {
+            ModifyMovementSpeed(token).Run();
+        }
+
     }
 }

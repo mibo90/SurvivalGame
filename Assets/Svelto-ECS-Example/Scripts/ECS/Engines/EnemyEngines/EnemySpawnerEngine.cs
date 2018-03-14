@@ -6,13 +6,15 @@ using UnityEngine;
 
 namespace Svelto.ECS.Example.Survive.Enemies
 {
-    public class EnemySpawnerEngine : IEngine, IStep<DamageInfo>
+    public class EnemySpawnerEngine : IEngine, IStep<EnemyWaveData>, IStep<DamageInfo>
     {
-        public EnemySpawnerEngine(Factories.IGameObjectFactory gameobjectFactory, IEntityFactory entityFactory)
+        public EnemySpawnerEngine(ISequencer enemyWaveSequence, ISequencer enemySpawnSequence, 
+            Factories.IGameObjectFactory gameobjectFactory, IEntityFactory entityFactory)
         {
             _gameobjectFactory = gameobjectFactory;
             _entityFactory = entityFactory;
-            _numberOfEnemyToSpawn = 15;
+            this.enemyWaveSequence = enemyWaveSequence;
+            this.enemySpawnSequence = enemySpawnSequence;
 
             IntervaledTick().Run();
         }
@@ -29,18 +31,39 @@ namespace Svelto.ECS.Example.Survive.Enemies
 //to use will never change            
             var enemiestoSpawn = ReadEnemySpawningDataServiceRequest();
 
-            while (true)
+            while (!levelFinnished)
             {
 //Svelto.Tasks allows to yield UnityYield instructions but this comes with a performance hit
 //so the fastest solution is always to use custom enumerators. To be honest the hit is minimal
 //but it's better to not abuse it.                
                 yield return _waitForSecondsEnumerator;
 
+                if (waveNumberOfEnemies == _numberOfEnemyKilled)
+                {
+                    wave++;
+                    if (lastwave) { levelFinnished = true; }
+                    enemyWaveSequence.Next(this, ref wave);
+                    yield return _wavewaitForSecondsEnumerator;
+
+                    foreach (var spawnData in enemiestoSpawn)
+                    {
+                        // The spawn time becomes normale spawntime + wavemodiefier times wave-1(wave-1 so the first wave is not
+                        //affected by the modiefier).
+                        float newSpawnTime = spawnData.spawnTime + (spawnData.waveSpawnModiefier * (wave - 1));
+                        // make sure the spawntime is always higher then 0
+                        if (newSpawnTime > 0)
+                            spawnData.spawnTime = spawnData.timeLeft = newSpawnTime;
+                        else spawnData.spawnTime = spawnData.timeLeft = 1;
+                    }
+                }
+                   
                 if (enemiestoSpawn != null)
                 {
+                    
                     for (int i = enemiestoSpawn.Length - 1; i >= 0 && _numberOfEnemyToSpawn > 0; --i)
                     {
                         var spawnData = enemiestoSpawn[i];
+                        
 
                         if (spawnData.timeLeft <= 0.0f)
                         {
@@ -74,8 +97,10 @@ namespace Svelto.ECS.Example.Survive.Enemies
 
                             transform.position = spawnInfo.position;
                             transform.rotation = spawnInfo.rotation;
-
                             spawnData.timeLeft = spawnData.spawnTime;
+                            EnemyMovementInfo movementInfo = new EnemyMovementInfo(enemySpeedPercentageGain, go.GetInstanceID());
+                            enemySpawnSequence.Next(this, ref movementInfo);
+
                             _numberOfEnemyToSpawn--;
                         }
 
@@ -94,15 +119,36 @@ namespace Svelto.ECS.Example.Survive.Enemies
             return enemiestoSpawn;
         }
 
+        public void Step(ref EnemyWaveData token, int condition)
+        {
+            waveNumberOfEnemies =_numberOfEnemyToSpawn = token.numberOfEnemiesToSpawn;
+            enemySpeedPercentageGain = token.enemySpeedPercentageGain;
+            _numberOfEnemyKilled = 0;
+            //wave++;
+            if (condition == WaveCondition.Last)
+            {
+                lastwave = true;
+            }
+        }
+
         public void Step(ref DamageInfo token, int condition)
         {
-            _numberOfEnemyToSpawn++;
+            _numberOfEnemyKilled++;
         }
 
         readonly Factories.IGameObjectFactory   _gameobjectFactory;
         readonly IEntityFactory                 _entityFactory;
         readonly WaitForSecondsEnumerator       _waitForSecondsEnumerator = new WaitForSecondsEnumerator(1);
+        readonly WaitForSecondsEnumerator       _wavewaitForSecondsEnumerator = new WaitForSecondsEnumerator(3);
 
+        ISequencer enemyWaveSequence;
+        ISequencer enemySpawnSequence;
         int     _numberOfEnemyToSpawn;
+        int     waveNumberOfEnemies;
+        int     _numberOfEnemyKilled;
+        float enemySpeedPercentageGain;
+        bool levelFinnished = false;
+        bool lastwave = false;
+        int wave = 0;
     }
 }

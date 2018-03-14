@@ -37,7 +37,7 @@ namespace Svelto.ECS.Example.Survive
         float movementSpeed { get; }
     }
 
-    public interface IDamageSoundComponent: IComponent
+    public interface IEntitySoundComponent: IComponent
     {
         AudioType playOneShot { set; }
     }

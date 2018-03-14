@@ -19,7 +19,7 @@ namespace Svelto.ECS.Example.Survive.Enemies
     {
         bool navMeshEnabled {  set; }
         Vector3 navMeshDestination { set; }
-        float moveSpeed { set; }
+        float moveSpeed { get; set; }
         bool setCapsuleAsTrigger { set; }
     }
 
@@ -37,6 +37,18 @@ namespace Svelto.ECS.Example.Survive.Enemies
         {
             this.otherEntityID = otherEntityID;
             this.collides = collides;
+        }
+    }
+
+    public struct EnemyMovementInfo
+    {
+        public float movementSpeed { get; private set; }
+        public int entityID { get; private set; }
+
+        public EnemyMovementInfo(float movementSpeed, int entity) : this()
+        {
+            this.movementSpeed = movementSpeed;
+            entityID = entity;
         }
     }
 
