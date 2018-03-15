@@ -8,9 +8,22 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
         Ray     shootRay           { get; }
         float   range              { get; }
         int     damagePerShot      { get; }
+        int     magazineCapacity   { get; }
+        int     currentBulletCount { get; set; }
         float   timer              { get; set; }
         Vector3 lastTargetPosition { get; set; }
     }
+
+    public struct GunInfo
+    {
+        public int magazineCapacity { get; private set; }
+        public int currentBulletCount { get; private set; }
+        public GunInfo(int magazineCapacity, int currentBulletCount)
+        {
+            this.magazineCapacity = magazineCapacity;
+            this.currentBulletCount = currentBulletCount;
+        }
+    } 
 
     public interface IGunHitTargetComponent : IComponent
     {

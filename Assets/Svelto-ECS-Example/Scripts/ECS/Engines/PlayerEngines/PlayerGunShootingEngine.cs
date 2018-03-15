@@ -15,10 +15,12 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
             _taskRoutine.Start();
         }
         
-        public PlayerGunShootingEngine(EnemyKilledObservable enemyKilledObservable, ISequencer damageSequence, IRayCaster rayCaster, ITime time)
+        public PlayerGunShootingEngine(EnemyKilledObservable enemyKilledObservable, ISequencer damageSequence, ISequencer ammoSequence,
+            IRayCaster rayCaster, ITime time)
         {
             _enemyKilledObservable = enemyKilledObservable;
             _enemyDamageSequence   = damageSequence;
+            _ammoSequence          = ammoSequence;
             _rayCaster             = rayCaster;
             _time                  = time;
             _taskRoutine           = TaskRunner.Instance.AllocateNewTaskRoutine().SetEnumerator(Tick())
@@ -58,7 +60,8 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
                 playerGunComponent.timer += _time.deltaTime;
                 
                 if (_playerEntityView.inputComponent.fire &&
-                    playerGunComponent.timer >= _playerGunEntityView.gunComponent.timeBetweenBullets)
+                    playerGunComponent.timer >= _playerGunEntityView.gunComponent.timeBetweenBullets && 
+                    playerGunComponent.currentBulletCount>0)
                     Shoot(_playerGunEntityView);
 
                 yield return null;
@@ -71,7 +74,9 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
             var playerGunHitComponent = playerGunEntityView.gunHitTargetComponent;
 
             playerGunComponent.timer = 0;
-
+            playerGunComponent.currentBulletCount -= 1;
+            var gunInfo = new GunInfo(playerGunComponent.magazineCapacity, playerGunComponent.currentBulletCount);
+            _ammoSequence.Next(this, ref gunInfo);
             Vector3 point;
             var     entityHit = _rayCaster.CheckHit(playerGunComponent.shootRay, playerGunComponent.range, ENEMY_LAYER, SHOOTABLE_MASK | ENEMY_MASK, out point);
             
@@ -116,10 +121,12 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
 
         readonly EnemyKilledObservable _enemyKilledObservable;
         readonly ISequencer            _enemyDamageSequence;
+        readonly ISequencer            _ammoSequence;
         readonly IRayCaster            _rayCaster;
 
         PlayerEntityView _playerEntityView;
         GunEntityView    _playerGunEntityView;
+        int _currentBullets;
         
         readonly ITime _time;
         readonly ITaskRoutine     _taskRoutine;

@@ -135,7 +135,9 @@ namespace Svelto.ECS.Example.Survive
             Sequencer enemyWaveSequence = new Sequencer();
             Sequencer enemySpawnSequence = new Sequencer();
             Sequencer bonusHealthSequence = new Sequencer();
-            
+            Sequencer bonusHealthSpawnSequence = new Sequencer();
+            Sequencer ammoSequence = new Sequencer();
+
             //wrap non testable unity static classes, so that 
             //can be mocked if needed.
             IRayCaster rayCaster = new RayCaster();
@@ -144,7 +146,7 @@ namespace Svelto.ECS.Example.Survive
             //Player related engines. ALL the dependecies must be solved at this point
             //through constructor injection.
             var playerHealthEngine = new HealthEngine(playerDamageSequence);
-            var playerShootingEngine = new PlayerGunShootingEngine(enemyKilledObservable, enemyDamageSequence, rayCaster, time);
+            var playerShootingEngine = new PlayerGunShootingEngine(enemyKilledObservable, enemyDamageSequence, ammoSequence, rayCaster, time);
             var playerMovementEngine = new PlayerMovementEngine(rayCaster, time);
             var playerAnimationEngine = new PlayerAnimationEngine();
             var playerDeathEngine = new PlayerDeathEngine(entityFunctions);
@@ -160,6 +162,9 @@ namespace Svelto.ECS.Example.Survive
             var enemyWaveEngine = new EnemyWaveEngine(enemyWaveSequence);
             //bonus engines
             var bonusHealthEngine = new BonusHealthEngine(bonusHealthSequence);
+            var bonusCollectedEngine = new BonusCollectedEngine(entityFunctions);
+            var bonusAnimationEngine = new BonusAnimationEngine();
+            var bonusHealthSpawnerEngine = new BonusHealthSpawnerEngine(bonusHealthSpawnSequence,factory, _entityFactory);
             //hud and sound engines
             var hudEngine = new HUDEngine(time);
             var enemyCountEngine = new EnemyCountEngine();
@@ -204,8 +209,8 @@ namespace Svelto.ECS.Example.Survive
                     { 
                         playerShootingEngine, 
                         new To
-                        { 
-                            enemyHealthEngine,
+                        {
+                             enemyHealthEngine,
                         }  
                     },
                     { 
@@ -259,7 +264,32 @@ namespace Svelto.ECS.Example.Survive
                         bonusHealthEngine,
                         new To
                         {
-                            { new IStep[]{ playerHealthEngine,hudEngine, bonusSoundEngine } }
+                            { new IStep[]{ playerHealthEngine,hudEngine, bonusSoundEngine,bonusAnimationEngine,
+                                bonusCollectedEngine } }
+                        }
+                    }
+                }
+                );
+            bonusHealthSpawnSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        bonusHealthSpawnerEngine,
+                        new To
+                        {
+                            bonusSoundEngine,
+                        }
+                    }
+                }
+                );
+            ammoSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        playerShootingEngine,
+                        new To
+                        {
+                            hudEngine,
                         }
                     }
                 }
@@ -283,6 +313,9 @@ namespace Svelto.ECS.Example.Survive
             _enginesRoot.AddEngine(enemyDeathEngine);
             //bonus engines
             _enginesRoot.AddEngine(bonusHealthEngine);
+            _enginesRoot.AddEngine(bonusCollectedEngine);
+            _enginesRoot.AddEngine(bonusAnimationEngine);
+            _enginesRoot.AddEngine(bonusHealthSpawnerEngine);
             //other engines
             _enginesRoot.AddEngine(new CameraFollowTargetEngine(time));
             _enginesRoot.AddEngine(damageSoundEngine);

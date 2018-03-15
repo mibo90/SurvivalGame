@@ -2,11 +2,12 @@ using Svelto.Tasks.Enumerators;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Svelto.ECS.Example.Survive.Player.Gun;
 
 namespace Svelto.ECS.Example.Survive.HUD
 {
     public class HUDEngine : SingleEntityViewEngine<HUDEntityView>, IQueryingEntityViewEngine, IStep<DamageInfo>, IStep<EnemyWaveData>,
-                            IStep<healthBonusInfo>
+                            IStep<healthBonusInfo>, IStep<GunInfo>
     {
         public IEntityViewsDB entityViewsDB { set; private get; }
 
@@ -42,32 +43,31 @@ namespace Svelto.ECS.Example.Survive.HUD
                 if (_guiEntityView == null) yield break;
             }
         }
-
-        void OnDamageEvent(DamageInfo damaged)
+        #region "Ammo Update"
+        public void Step(ref GunInfo token, int condition)
         {
-            UpdateSlider(damaged);
+            OnGunUsed(token); 
         }
-
-        void OnHealthBonusEvent(healthBonusInfo healthBonus)
+        void OnGunUsed(GunInfo gunInfo)
         {
-            UpdateSlider(healthBonus);
+            UpdateAmmo(gunInfo);
         }
-
-        void OnDeadEvent()
+        void UpdateAmmo(GunInfo gunInfo)
         {
-            _guiEntityView.healthSliderComponent.value = 0;
+            _guiEntityView.bulletCountComponent.magazineCount = gunInfo.magazineCapacity;
+            _guiEntityView.bulletCountComponent.currentCount = gunInfo.currentBulletCount;
+        }
+        #endregion
 
-            RestartLevelAfterFewSeconds().Run();
-        }
-        void OnLevelCompleteEvent()
+        #region "Damage update"
+        public void Step(ref DamageInfo token, int condition)
         {
-            NextLevel().Run();
+            if (condition == DamageCondition.Damage)
+                OnDamageEvent(token);
+            else
+            if (condition == DamageCondition.Dead)
+                OnDeadEvent();
         }
-        void OnWaveCompleteEvent()
-        {
-            NextWave().Run();
-        }
-
         void UpdateSlider(DamageInfo damaged)
         {
             var damageComponent = _guiEntityView.damageImageComponent;
@@ -79,13 +79,18 @@ namespace Svelto.ECS.Example.Survive.HUD
          
             _guiEntityView.healthSliderComponent.value = hudHealthEntityView.healthComponent.currentHealth;
         }
-        void UpdateSlider(healthBonusInfo bonus)
+
+        void OnDamageEvent(DamageInfo damaged)
         {
-            var hudHealthEntityView =
-                entityViewsDB.QueryEntityView<HUDHealthEntityView>(bonus.targetEntityID);
-            _guiEntityView.healthSliderComponent.value = hudHealthEntityView.healthComponent.currentHealth;
+            UpdateSlider(damaged);
         }
 
+        void OnDeadEvent()
+        {
+            _guiEntityView.healthSliderComponent.value = 0;
+
+            RestartLevelAfterFewSeconds().Run();
+        }
         IEnumerator RestartLevelAfterFewSeconds()
         {
             _waitForSeconds.Reset(5);
@@ -98,6 +103,19 @@ namespace Svelto.ECS.Example.Survive.HUD
 
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
+        #endregion
+
+        #region "Wave update"
+        public void Step(ref EnemyWaveData token, int condition)
+        {
+            if (condition == WaveCondition.Next || condition == WaveCondition.Last)
+            {
+                OnWaveCompleteEvent();
+            }
+            else if (condition == WaveCondition.Stop)
+                OnLevelCompleteEvent();
+        }
+
         IEnumerator NextLevel()
         {
             _waitForSeconds.Reset(2);
@@ -121,30 +139,34 @@ namespace Svelto.ECS.Example.Survive.HUD
             _guiEntityView.HUDAnimator.setBool("NextLevel", false);
         }
 
-        public void Step(ref DamageInfo token, int condition)
+        void OnLevelCompleteEvent()
         {
-            if (condition == DamageCondition.Damage)
-                OnDamageEvent(token);
-            else
-            if (condition == DamageCondition.Dead)
-                OnDeadEvent();
+            NextLevel().Run();
         }
-        public void Step(ref EnemyWaveData token, int condition)
+        void OnWaveCompleteEvent()
         {
-            if (condition == WaveCondition.Next || condition == WaveCondition.Last)
-            {
-                OnWaveCompleteEvent();
-            }
-            else if (condition == WaveCondition.Stop)
-                OnLevelCompleteEvent();
+            NextWave().Run();
         }
+        #endregion
 
+        #region "Health bonus update"
         public void Step(ref healthBonusInfo healthBonus, int condition)
         {
             OnHealthBonusEvent(healthBonus);
         }
+        void OnHealthBonusEvent(healthBonusInfo healthBonus)
+        {
+            UpdateSlider(healthBonus);
+        }
+        void UpdateSlider(healthBonusInfo bonus)
+        {
+            var hudHealthEntityView =
+                entityViewsDB.QueryEntityView<HUDHealthEntityView>(bonus.targetEntityID);
+            _guiEntityView.healthSliderComponent.value = hudHealthEntityView.healthComponent.currentHealth;
+        }
+        #endregion
 
-        HUDEntityView                      _guiEntityView;
+        HUDEntityView _guiEntityView;
         readonly WaitForSecondsEnumerator  _waitForSeconds = new WaitForSecondsEnumerator(5);
         readonly ITime                     _time;
     }

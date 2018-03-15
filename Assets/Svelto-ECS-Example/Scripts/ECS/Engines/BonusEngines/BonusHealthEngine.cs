@@ -48,7 +48,7 @@ namespace Svelto.ECS.Example.Survive.Bonus
                         if (bonusHCollisionData.collides == true &&
                             bonusHCollisionData.otherEntityID == targetEntityView.ID)
                         {
-                            bonusHealthEntityView.destroyComponent.destroyed.value = true;
+                            
                             
                             var healthBonusInfo = new healthBonusInfo(targetEntityView.ID, bonusHealthEntityView.ID,
                                 bonusHealthEntityView.bonusAmountComponent.amount);

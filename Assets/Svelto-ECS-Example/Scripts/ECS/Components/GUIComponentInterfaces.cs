@@ -23,4 +23,10 @@ namespace Svelto.ECS.Example.Survive.HUD
     {
         int enemyCount { set; get; }
     }
+
+    public interface IBulletCountComponent: IComponent
+    {
+        int magazineCount { get; set; }
+        int currentCount { get; set; }
+    }
 }

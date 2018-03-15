@@ -39,6 +39,7 @@ namespace Svelto.ECS.Example.Survive
 
     public interface IEntitySoundComponent: IComponent
     {
-        AudioType playOneShot { set; }
+        AudioType   playOneShot { set; }
+        bool        isPlaying { get; }
     }
 }

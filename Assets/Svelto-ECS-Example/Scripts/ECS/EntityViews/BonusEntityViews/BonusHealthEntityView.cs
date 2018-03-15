@@ -2,14 +2,10 @@
 {
     public class BonusHealthEntityView : EntityView
     {
-        public IBonusHealthTriggerComponent targetTriggerComponent;
+        public IBonusTriggerComponent targetTriggerComponent;
         public IPositionComponent positionComponent;
         public IDestroyComponent destroyComponent;
         public IBonusAmountComponent bonusAmountComponent;
+        public IAnimationComponent animationComponent;
     }
-
-    //public class BonusTargetEntityView : EntityView
-    //{
-    //    public IPositionComponent targetPositionComponent;
-    //}
 }

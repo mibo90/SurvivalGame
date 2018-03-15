@@ -1,17 +1,17 @@
 ﻿
 namespace Svelto.ECS.Example.Survive
 {
-        public interface IBonusHealthTriggerComponent : IComponent
+        public interface IBonusTriggerComponent : IComponent
         {
-            HealthBonusCollisionData entityInRange { get; }
+            BonusCollisionData entityInRange { get; }
         }
 
-        public struct HealthBonusCollisionData
+        public struct BonusCollisionData
         {
             public int otherEntityID;
             public bool collides;
 
-            public HealthBonusCollisionData(int otherEntityID, bool collides)
+            public BonusCollisionData(int otherEntityID, bool collides)
             {
                 this.otherEntityID = otherEntityID;
                 this.collides = collides;

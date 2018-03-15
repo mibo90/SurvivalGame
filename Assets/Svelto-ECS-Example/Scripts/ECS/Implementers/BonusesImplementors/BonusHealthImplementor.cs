@@ -23,7 +23,7 @@ namespace Svelto.ECS.Example.Survive.Bonus
 
         void OnDestroyed(int sender, bool isDestroyed)
         {
-            Destroy(gameObject);
+            Destroy(transform.parent.gameObject);
         }
     }
 }

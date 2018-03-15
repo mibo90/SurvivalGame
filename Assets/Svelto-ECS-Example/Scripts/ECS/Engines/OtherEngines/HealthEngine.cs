@@ -31,8 +31,10 @@ namespace Svelto.ECS.Example.Survive
         {
             var entityView = entityViewsDB.QueryEntityView<HealthEntityView>(bonusHealth.targetEntityID);
             var healthComponent = entityView.healthComponent;
-
-            healthComponent.currentHealth += bonusHealth.amount;
+            if (healthComponent.maxHealth > healthComponent.currentHealth + bonusHealth.amount)
+                healthComponent.currentHealth += bonusHealth.amount;
+            else healthComponent.currentHealth = healthComponent.maxHealth;
+            
         }
 
         readonly ISequencer  _damageSequence;

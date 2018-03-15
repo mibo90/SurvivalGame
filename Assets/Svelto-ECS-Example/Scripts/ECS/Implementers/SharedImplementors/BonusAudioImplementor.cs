@@ -33,6 +33,14 @@ namespace Svelto.ECS.Example.Survive.Implementors
             }
         }
 
+        public bool isPlaying
+        {
+            get
+            {
+                return _audioSource.isPlaying;
+            }
+        }
+
         AudioSource _audioSource;           // Reference to the audio source.
     }
 }
