@@ -4271,7 +4271,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _duration: 1
   _speed: 10
-  _cooldown: 2
+  _cooldown: 10
 --- !u!135 &135215606634391722
 SphereCollider:
   m_ObjectHideFlags: 1
