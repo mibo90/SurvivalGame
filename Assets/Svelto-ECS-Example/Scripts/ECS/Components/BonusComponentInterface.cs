@@ -18,11 +18,6 @@ namespace Svelto.ECS.Example.Survive
             }
         }
 
-        public interface IDestroyComponent
-        {
-            DispatchOnChange<bool> destroyed { get; }
-        }
-        
         public interface IBonusAmountComponent
         {
             int amount { get; }

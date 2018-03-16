@@ -58,7 +58,7 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
             
             while (true)
             {
-                var playerGunComponent = _playerGunEntityView.gunComponent;
+                var playerGunComponent = _playerGunEntityView.gunComponent;// maybe should not be in the while loop
 
                 playerGunComponent.timer += _time.deltaTime;
                 

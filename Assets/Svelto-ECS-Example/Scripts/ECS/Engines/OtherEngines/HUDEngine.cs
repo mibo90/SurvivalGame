@@ -7,7 +7,7 @@ using Svelto.ECS.Example.Survive.Player.Gun;
 namespace Svelto.ECS.Example.Survive.HUD
 {
     public class HUDEngine : SingleEntityViewEngine<HUDEntityView>, IQueryingEntityViewEngine, IStep<DamageInfo>, IStep<EnemyWaveData>,
-                            IStep<BonusInfo>, IStep<GunInfo>
+                            IStep<BonusInfo>, IStep<GunInfo>, IStep<PowerInfo>
     {
         public IEntityViewsDB entityViewsDB { set; private get; }
 
@@ -178,6 +178,25 @@ namespace Svelto.ECS.Example.Survive.HUD
             var hudHealthEntityView =
                 entityViewsDB.QueryEntityView<HUDHealthEntityView>(bonus.targetEntityID);
             _guiEntityView.healthSliderComponent.value = hudHealthEntityView.healthComponent.currentHealth;
+        }
+
+        #endregion
+
+        #region "Power image update"
+        public void Step(ref PowerInfo token, int condition)
+        {
+            UpdatePowerUI(token).Run();
+        }
+
+        IEnumerator UpdatePowerUI(PowerInfo info)
+        {
+            _guiEntityView.powerFilledImageComponent.fillAmount = 0f;
+            while (_guiEntityView.powerFilledImageComponent.fillAmount<1f)
+            {
+                _guiEntityView.powerFilledImageComponent.fillAmount += _time.deltaTime / info.cooldown;
+                yield return null;
+            }
+            
         }
         #endregion
 

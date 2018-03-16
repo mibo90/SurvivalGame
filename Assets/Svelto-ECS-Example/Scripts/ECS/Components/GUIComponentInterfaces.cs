@@ -14,6 +14,11 @@ namespace Svelto.ECS.Example.Survive.HUD
         int value { set; }
     }
 
+    public interface IPowerFilledImageComponent : IComponent
+    {
+        float fillAmount { get; set; }
+    }
+
     public interface IScoreComponent: IComponent
     {
         int score { set; get; }

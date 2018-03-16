@@ -1,8 +1,8 @@
 ﻿namespace Svelto.ECS.Example.Survive.HUD
 {
-    public class EnemyCountEngine : SingleEntityViewEngine<HUDEntityView>, IStep<EnemyWaveData>, IStep<DamageInfo>
+    public class EnemyHUDEngine : SingleEntityViewEngine<HUDEntityView>, IStep<EnemyWaveData>, IStep<DamageInfo>
     {
-        public EnemyCountEngine()
+        public EnemyHUDEngine()
         {
         }
 

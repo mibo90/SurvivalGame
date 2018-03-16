@@ -5,6 +5,8 @@ namespace Svelto.ECS.Example.Survive
         damage,
         death,
         spawn,
-        collect
+        collect,
+        activate,
+        deactivate
     }
 }

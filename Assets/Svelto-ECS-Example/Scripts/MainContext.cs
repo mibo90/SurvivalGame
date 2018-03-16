@@ -5,6 +5,7 @@ using Svelto.ECS.Example.Survive.Player.Gun;
 using Svelto.ECS.Example.Survive.Sound;
 using Svelto.ECS.Example.Survive.HUD;
 using Svelto.ECS.Example.Survive.Bonus;
+using Svelto.ECS.Example.Survive.Player.Power;
 using Svelto.Context;
 using Svelto.ECS.Example.Survive.Camera;
 using UnityEngine;
@@ -139,6 +140,7 @@ namespace Svelto.ECS.Example.Survive
             Sequencer bonusHealthSpawnSequence = new Sequencer();
             Sequencer bonusAmmoSpawnSequence = new Sequencer();
             Sequencer ammoUpdateSequence = new Sequencer();
+            Sequencer pushPowerSequence = new Sequencer();
 
             //wrap non testable unity static classes, so that 
             //can be mocked if needed.
@@ -169,11 +171,15 @@ namespace Svelto.ECS.Example.Survive
             var bonusHealthSpawnerEngine = new BonusHealthSpawnerEngine(bonusHealthSpawnSequence,factory, _entityFactory);
             var bonusAmmoSpawnerEngine = new BonusAmmoSpawnerEngine(bonusAmmoSpawnSequence, factory, _entityFactory);
             var bonusAmmoEngine = new BonusAmmoEngine(bonusAmmoSequence);
+            var bonusSoundEngine = new BonusSoundEngine();
+            //powers engines
+            var pushPowerEngine = new PushPowerEngine(pushPowerSequence,time);
+            var powerSoundEngine = new PowerSoundEngine();
             //hud and sound engines
             var hudEngine = new HUDEngine(time);
-            var enemyCountEngine = new EnemyCountEngine();
+            var enemyCountEngine = new EnemyHUDEngine();
             var damageSoundEngine = new DamageSoundEngine();
-            var bonusSoundEngine = new BonusSoundEngine();
+            
 
             //The ISequencer implementaton is very simple, but allows to perform
             //complex concatenation including loops and conditional branching.
@@ -323,6 +329,19 @@ namespace Svelto.ECS.Example.Survive
                     }
                 }
                 );
+            pushPowerSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        pushPowerEngine,
+                        new To
+                        {
+                            {PowerCondition.Start, new IStep[] {powerSoundEngine, hudEngine } },
+                            {PowerCondition.Stop, new IStep[] { powerSoundEngine } },
+                        }
+                    }
+                }
+                );
             #endregion
             //Mandatory step to make engines work
             //Player engines
@@ -347,6 +366,9 @@ namespace Svelto.ECS.Example.Survive
             _enginesRoot.AddEngine(bonusAnimationEngine);
             _enginesRoot.AddEngine(bonusHealthSpawnerEngine);
             _enginesRoot.AddEngine(bonusAmmoSpawnerEngine);
+            //powers engines
+            _enginesRoot.AddEngine(powerSoundEngine);
+            _enginesRoot.AddEngine(pushPowerEngine);
             //other engines
             _enginesRoot.AddEngine(new CameraFollowTargetEngine(time));
             _enginesRoot.AddEngine(damageSoundEngine);
@@ -399,6 +421,15 @@ namespace Svelto.ECS.Example.Survive
             //explicitly, I have to create if from the existing gameobject.
             var gun = player.GetComponentInChildren<PlayerShootingImplementor>();
             _entityFactory.BuildEntity<PlayerGunEntityDescriptor>(gun.gameObject.GetInstanceID(), new object[] {gun});
+
+            //cleared the list so I can reuse it
+            implementors.Clear();
+            // I used a implementor I know it's going to be there to find the object I was looking for and then grabed all the 
+            //implementors under it and built the entity
+            var specialPower = player.GetComponentInChildren<PushPowerImplementor>().gameObject;
+            specialPower.GetComponents(implementors);
+
+            _entityFactory.BuildEntity<PlayerPowerEntityDescriptor>(specialPower.GetInstanceID(), implementors.ToArray());
         }
 
         void BuildCameraEntity()

@@ -21,6 +21,11 @@ namespace Svelto.ECS.Example.Survive
         Vector3 position { get; }
     }
 
+    public interface IScaleComponent : IComponent
+    {
+        Vector3 scale { get; set; }
+    }
+
     public interface ITransformComponent: IPositionComponent
     {
         Vector3 position { set; }
@@ -31,6 +36,13 @@ namespace Svelto.ECS.Example.Survive
     {
         bool isKinematic { set; }
     }
+
+
+    public interface IDestroyComponent
+    {
+        DispatchOnChange<bool> destroyed { get; }
+    }
+
 
     public interface ISpeedComponent: IComponent
     {

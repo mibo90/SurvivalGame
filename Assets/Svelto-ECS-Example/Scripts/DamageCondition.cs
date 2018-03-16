@@ -4,6 +4,5 @@ namespace Svelto.ECS.Example.Survive
     {
         public const int Damage = 0;
         public const int Dead = 1;
-        public const int NoDamage = 2;
     }
 }
