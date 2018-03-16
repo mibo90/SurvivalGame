@@ -7,7 +7,7 @@ using Svelto.ECS.Example.Survive.Player.Gun;
 namespace Svelto.ECS.Example.Survive.HUD
 {
     public class HUDEngine : SingleEntityViewEngine<HUDEntityView>, IQueryingEntityViewEngine, IStep<DamageInfo>, IStep<EnemyWaveData>,
-                            IStep<healthBonusInfo>, IStep<GunInfo>
+                            IStep<BonusInfo>, IStep<GunInfo>
     {
         public IEntityViewsDB entityViewsDB { set; private get; }
 
@@ -149,16 +149,31 @@ namespace Svelto.ECS.Example.Survive.HUD
         }
         #endregion
 
-        #region "Health bonus update"
-        public void Step(ref healthBonusInfo healthBonus, int condition)
+        #region "Bonus update"
+        public void Step(ref BonusInfo token, int condition)
         {
-            OnHealthBonusEvent(healthBonus);
+            if (token.bonusType == BonusType.health)
+                OnHealthBonusEvent(token);
+            else
+                OnAmmoBonusEvent(token);
         }
-        void OnHealthBonusEvent(healthBonusInfo healthBonus)
+        void OnAmmoBonusEvent(BonusInfo ammoBonus)
+        {
+            UpdateAmmo(ammoBonus);
+        }
+        void UpdateAmmo(BonusInfo ammoBonus)
+        {
+            var bulletComponent = _guiEntityView.bulletCountComponent;
+            if (bulletComponent.magazineCount > bulletComponent.currentCount + ammoBonus.amount)
+                bulletComponent.currentCount = ammoBonus.amount;
+            else
+                bulletComponent.currentCount = bulletComponent.magazineCount;
+        }
+        void OnHealthBonusEvent(BonusInfo healthBonus)
         {
             UpdateSlider(healthBonus);
         }
-        void UpdateSlider(healthBonusInfo bonus)
+        void UpdateSlider(BonusInfo bonus)
         {
             var hudHealthEntityView =
                 entityViewsDB.QueryEntityView<HUDHealthEntityView>(bonus.targetEntityID);

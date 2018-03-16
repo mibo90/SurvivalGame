@@ -28,17 +28,19 @@ namespace Svelto.ECS.Example.Survive
             int amount { get; }
         }
 
-    public struct healthBonusInfo
+    public struct BonusInfo
     {
         public int targetEntityID;
         public int bonusEntityID;
         public int amount;
+        public BonusType bonusType;
 
-        public healthBonusInfo(int targetEntityID, int bonusEntityID,  int amount)
+        public BonusInfo(int targetEntityID, int bonusEntityID,  int amount, BonusType bonusType)
         {
             this.targetEntityID = targetEntityID;
             this.bonusEntityID = bonusEntityID;
             this.amount = amount;
+            this.bonusType = bonusType;
         }
     }
 }

@@ -6,7 +6,7 @@ using Svelto.Tasks;
 namespace Svelto.ECS.Example.Survive.Player.Gun
 {
     public class PlayerGunShootingEngine : MultiEntityViewsEngine<GunEntityView, PlayerEntityView>, 
-        IQueryingEntityViewEngine, IStep<DamageInfo>
+        IQueryingEntityViewEngine, IStep<DamageInfo>, IStep<BonusInfo>
     {
         public IEntityViewsDB entityViewsDB { set; private get; }
 
@@ -30,6 +30,9 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
         protected override void Add(GunEntityView entityView)
         {
             _playerGunEntityView = entityView;
+            var playerGunComponent = _playerGunEntityView.gunComponent;
+            var gunInfo = new GunInfo(playerGunComponent.magazineCapacity, playerGunComponent.currentBulletCount);
+            _ammoSequence.Next(this, ref gunInfo);
         }
 
         protected override void Remove(GunEntityView entityView)
@@ -113,10 +116,22 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
 
             _enemyKilledObservable.Dispatch(ref targetType);
         }
-
+        void OnBonusCollected(BonusInfo info)
+        {
+            var playerGunComponent = _playerGunEntityView.gunComponent;
+            if (playerGunComponent.magazineCapacity > playerGunComponent.currentBulletCount + info.amount)
+                playerGunComponent.currentBulletCount += info.amount;
+            else
+                playerGunComponent.currentBulletCount = playerGunComponent.magazineCapacity;
+        }
         public void Step(ref DamageInfo token, int condition)
         {
             OnTargetDead(token.entityDamagedID);
+        }
+
+        public void Step(ref BonusInfo token, int condition)
+        {
+            OnBonusCollected(token);
         }
 
         readonly EnemyKilledObservable _enemyKilledObservable;

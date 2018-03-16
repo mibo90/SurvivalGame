@@ -2,7 +2,7 @@
 
 namespace Svelto.ECS.Example.Survive.Bonus
 {
-    public class HealthBonusAnimationImplementor : MonoBehaviour, IImplementor,
+    public class BonusAnimationImplementor : MonoBehaviour, IImplementor,
         IAnimationComponent
     {
         public void setBool(string name, bool value)

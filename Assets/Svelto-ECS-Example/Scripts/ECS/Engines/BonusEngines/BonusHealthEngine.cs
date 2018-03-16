@@ -50,8 +50,8 @@ namespace Svelto.ECS.Example.Survive.Bonus
                         {
                             
                             
-                            var healthBonusInfo = new healthBonusInfo(targetEntityView.ID, bonusHealthEntityView.ID,
-                                bonusHealthEntityView.bonusAmountComponent.amount);
+                            var healthBonusInfo = new BonusInfo(targetEntityView.ID, bonusHealthEntityView.ID,
+                                bonusHealthEntityView.bonusAmountComponent.amount, BonusType.health);
                                 _targetDamageSequence.Next(this, ref healthBonusInfo);
                         }
                     }

@@ -135,8 +135,10 @@ namespace Svelto.ECS.Example.Survive
             Sequencer enemyWaveSequence = new Sequencer();
             Sequencer enemySpawnSequence = new Sequencer();
             Sequencer bonusHealthSequence = new Sequencer();
+            Sequencer bonusAmmoSequence = new Sequencer();
             Sequencer bonusHealthSpawnSequence = new Sequencer();
-            Sequencer ammoSequence = new Sequencer();
+            Sequencer bonusAmmoSpawnSequence = new Sequencer();
+            Sequencer ammoUpdateSequence = new Sequencer();
 
             //wrap non testable unity static classes, so that 
             //can be mocked if needed.
@@ -146,7 +148,7 @@ namespace Svelto.ECS.Example.Survive
             //Player related engines. ALL the dependecies must be solved at this point
             //through constructor injection.
             var playerHealthEngine = new HealthEngine(playerDamageSequence);
-            var playerShootingEngine = new PlayerGunShootingEngine(enemyKilledObservable, enemyDamageSequence, ammoSequence, rayCaster, time);
+            var playerShootingEngine = new PlayerGunShootingEngine(enemyKilledObservable, enemyDamageSequence, ammoUpdateSequence, rayCaster, time);
             var playerMovementEngine = new PlayerMovementEngine(rayCaster, time);
             var playerAnimationEngine = new PlayerAnimationEngine();
             var playerDeathEngine = new PlayerDeathEngine(entityFunctions);
@@ -165,6 +167,8 @@ namespace Svelto.ECS.Example.Survive
             var bonusCollectedEngine = new BonusCollectedEngine(entityFunctions);
             var bonusAnimationEngine = new BonusAnimationEngine();
             var bonusHealthSpawnerEngine = new BonusHealthSpawnerEngine(bonusHealthSpawnSequence,factory, _entityFactory);
+            var bonusAmmoSpawnerEngine = new BonusAmmoSpawnerEngine(bonusAmmoSpawnSequence, factory, _entityFactory);
+            var bonusAmmoEngine = new BonusAmmoEngine(bonusAmmoSequence);
             //hud and sound engines
             var hudEngine = new HUDEngine(time);
             var enemyCountEngine = new EnemyCountEngine();
@@ -282,7 +286,19 @@ namespace Svelto.ECS.Example.Survive
                     }
                 }
                 );
-            ammoSequence.SetSequence(
+            bonusAmmoSpawnSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        bonusAmmoSpawnerEngine,
+                        new To
+                        {
+                            bonusSoundEngine,
+                        }
+                    }
+                }
+                );
+            ammoUpdateSequence.SetSequence(
                 new Steps
                 {
                     {
@@ -290,6 +306,19 @@ namespace Svelto.ECS.Example.Survive
                         new To
                         {
                             hudEngine,
+                        }
+                    }
+                }
+                );
+            bonusAmmoSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        bonusAmmoEngine,
+                        new To
+                        {
+                            { new IStep[]{ playerShootingEngine,hudEngine, bonusSoundEngine,bonusAnimationEngine,
+                                bonusCollectedEngine } }
                         }
                     }
                 }
@@ -313,9 +342,11 @@ namespace Svelto.ECS.Example.Survive
             _enginesRoot.AddEngine(enemyDeathEngine);
             //bonus engines
             _enginesRoot.AddEngine(bonusHealthEngine);
+            _enginesRoot.AddEngine(bonusAmmoEngine);
             _enginesRoot.AddEngine(bonusCollectedEngine);
             _enginesRoot.AddEngine(bonusAnimationEngine);
             _enginesRoot.AddEngine(bonusHealthSpawnerEngine);
+            _enginesRoot.AddEngine(bonusAmmoSpawnerEngine);
             //other engines
             _enginesRoot.AddEngine(new CameraFollowTargetEngine(time));
             _enginesRoot.AddEngine(damageSoundEngine);

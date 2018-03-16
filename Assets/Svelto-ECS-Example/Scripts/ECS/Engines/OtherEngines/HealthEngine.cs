@@ -1,6 +1,6 @@
 namespace Svelto.ECS.Example.Survive
 {
-    public class HealthEngine : IQueryingEntityViewEngine, IStep<DamageInfo>, IStep<healthBonusInfo>
+    public class HealthEngine : IQueryingEntityViewEngine, IStep<DamageInfo>, IStep<BonusInfo>
     {
         public void Ready()
         { }
@@ -27,7 +27,7 @@ namespace Svelto.ECS.Example.Survive
                 _damageSequence.Next(this, ref damage, DamageCondition.Damage);
         }
 
-        public void Step(ref healthBonusInfo bonusHealth, int condition)
+        public void Step(ref BonusInfo bonusHealth, int condition)
         {
             var entityView = entityViewsDB.QueryEntityView<HealthEntityView>(bonusHealth.targetEntityID);
             var healthComponent = entityView.healthComponent;

@@ -36,7 +36,7 @@ namespace Svelto.ECS.Example.Survive.Bonus
                         int spawnPointIndex = Random.Range(0, spawnData.spawnPoints.Length);
 
                         // Create an instance of the enemy prefab at the randomly selected spawn point position and rotation.
-                        var go = _gameobjectFactory.Build(spawnData.healthBonusPrefab);
+                        var go = _gameobjectFactory.Build(spawnData.bonusPrefab);
                         
                         List<IImplementor> implementors = new List<IImplementor>();
                         go.GetComponentsInChildren(implementors);
@@ -55,11 +55,11 @@ namespace Svelto.ECS.Example.Survive.Bonus
             }
         }
 
-        static JSonBonusHealthSpawnData[] ReadEnemySpawningDataServiceRequest()
+        static JSonBonusSpawnData[] ReadEnemySpawningDataServiceRequest()
         {
             string json = File.ReadAllText(Application.persistentDataPath + "/BonusHealthSpawningData.json");
 
-            JSonBonusHealthSpawnData[] bonusHealthtoSpawn = JsonHelper.getJsonArray<JSonBonusHealthSpawnData>(json);
+            JSonBonusSpawnData[] bonusHealthtoSpawn = JsonHelper.getJsonArray<JSonBonusSpawnData>(json);
 
             return bonusHealthtoSpawn;
         }

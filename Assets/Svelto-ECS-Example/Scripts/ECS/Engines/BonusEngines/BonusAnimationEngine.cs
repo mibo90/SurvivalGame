@@ -3,7 +3,7 @@ using System.Collections;
 
 namespace Svelto.ECS.Example.Survive.Bonus
 {
-    public class BonusAnimationEngine : IQueryingEntityViewEngine, IStep<healthBonusInfo>
+    public class BonusAnimationEngine : IQueryingEntityViewEngine, IStep<BonusInfo>
     {
         public IEntityViewsDB entityViewsDB { set; private get; }
 
@@ -15,10 +15,18 @@ namespace Svelto.ECS.Example.Survive.Bonus
             var entity = entityViewsDB.QueryEntityView<BonusHealthEntityView>(entityID);
             entity.animationComponent.trigger = "Collected";
         }
-
-        public void Step(ref healthBonusInfo token, int condition)
+        void TriggerAmmoCollectAnimation(int entityID)
         {
-            TriggerHealthCollectAnimation(token.bonusEntityID);
+            var entity = entityViewsDB.QueryEntityView<BonusAmmoEntityView>(entityID);
+            entity.animationComponent.trigger = "Collected";
+        }
+
+        public void Step(ref BonusInfo token, int condition)
+        {
+            if (token.bonusType == BonusType.health)
+                TriggerHealthCollectAnimation(token.bonusEntityID);
+            else
+                TriggerAmmoCollectAnimation(token.bonusEntityID);
         }
     }
 }

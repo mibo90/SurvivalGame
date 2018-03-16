@@ -3,7 +3,7 @@ using Svelto.ECS.Example.Survive;
 using UnityEngine;
 
 [ExecuteInEditMode]
-public class BonusHealthSpawningData : MonoBehaviour
+public class BonusAmmoSpawningData : MonoBehaviour
 {
     static private bool serializedOnce;
 
@@ -27,6 +27,6 @@ public class BonusHealthSpawningData : MonoBehaviour
 
         Utility.Console.Log(json);
 
-        File.WriteAllText(Application.persistentDataPath + "/BonusHealthSpawningData.json", json);
+        File.WriteAllText(Application.persistentDataPath + "/BonusAmmoSpawningData.json", json);
     }
 }

@@ -4,14 +4,14 @@ using UnityEngine;
 namespace Svelto.ECS.Example.Survive
 {
     [Serializable]
-    public class JSonBonusHealthSpawnData
+    public class JSonBonusSpawnData
     {
-        public GameObject healthBonusPrefab;
+        public GameObject bonusPrefab;
         public SpawningStruct[] spawnPoints;
 
-        public JSonBonusHealthSpawnData(BonusHealthSpawnData spawnData)
+        public JSonBonusSpawnData(BonusSpawnData spawnData)
         {
-            healthBonusPrefab = spawnData.healthBonusPrefab;
+            bonusPrefab = spawnData.bonusPrefab;
             spawnPoints = new SpawningStruct[spawnData.spawnPoints.Length];
 
             for (int i = 0; i < spawnPoints.Length; i++)
@@ -23,9 +23,9 @@ namespace Svelto.ECS.Example.Survive
     }
 
     [Serializable]
-    public class BonusHealthSpawnData
+    public class BonusSpawnData
     {
-        public GameObject healthBonusPrefab;
+        public GameObject bonusPrefab;
         public Transform[] spawnPoints;
     }
 
