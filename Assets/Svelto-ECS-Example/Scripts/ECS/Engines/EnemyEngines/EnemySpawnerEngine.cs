@@ -87,7 +87,7 @@ namespace Svelto.ECS.Example.Survive.Enemies
                             //therefore I always use the same EntityDescriptor. However if the 
                             //different enemies had to create different EntityViews for different
                             //engines, this would have been a good example where EntityDescriptorHolder
-                            //could have been used to exploit the kind of polymorphism explained
+                            //could have been used to exploit the the kind of polymorphism explained
                             //in my articles.
                             _entityFactory.BuildEntity<EnemyEntityDescriptor>(
                                 go.GetInstanceID(), implementors.ToArray());

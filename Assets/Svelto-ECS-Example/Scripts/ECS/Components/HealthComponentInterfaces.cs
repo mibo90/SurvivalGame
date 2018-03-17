@@ -26,8 +26,8 @@ namespace Svelto.ECS.Example.Survive
 
     public enum EntityDamagedType
     {
-        EnemyTarget,
-        PlayerTarget
+        Player,
+        Enemy
     }
 }
     

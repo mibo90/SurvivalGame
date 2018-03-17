@@ -1,8 +1,7 @@
 using System;
 using System.Diagnostics;
-using Svelto.DataStructures;
-using Console = Utility.Console;
 using System.Threading;
+using Svelto.DataStructures;
 using Svelto.Utilities;
 
 #if TASKS_PROFILER_ENABLED
@@ -18,17 +17,14 @@ namespace Svelto.Tasks
     //If you want to use a separate thread, you will need to create another MultiThreadRunner
     public sealed class MultiThreadRunner : IRunner
     {
-        public bool paused
-        {
-            set; get;
-        }
+        public bool paused { set; get; }
 
         public bool isStopping
         {
             get
             {
                 ThreadUtility.MemoryBarrier();
-                return _waitForflush == true;
+                return _waitForflush;
             }
         }
 
@@ -44,48 +40,47 @@ namespace Svelto.Tasks
 
         public void Dispose()
         {
-            Kill();
+            Kill(null);
         }
 
         public MultiThreadRunner(string name, bool relaxed = true)
         {
-#if !NETFX_CORE || NET_STANDARD_2_0 || NETSTANDARD2_0
-            var thread = new Thread(() =>
-            {
-                _name = name;
-
-                RunCoroutineFiber();
-            });
-
-            thread.IsBackground = true;
-            if (relaxed)
-            {
-                _lockingMechanism = RelaxedLockingMechanism;
-            }
-            else
-            {
-                _lockingMechanism = QuickLockingMechanism;
-            }
-#else
-            var thread = new Task(() =>
-            {
-                _name = name;
-
-                RunCoroutineFiber();
-            });
-    
-            _lockingMechanism = RelaxedLockingMechanism;
-#endif
-
             _mevent = new ManualResetEventEx();
 
+            if (relaxed)
+                _lockingMechanism = RelaxedLockingMechanism;
+            else
+                _lockingMechanism = QuickLockingMechanism;
+
+#if !NETFX_CORE || NET_STANDARD_2_0 || NETSTANDARD2_0
+            //threadpool doesn't work well with Unity apparently
+            //it seems to choke when too meany threads are started
+            var thread = new Thread(() =>
+                                    {
+                                        _name = name;
+
+                                        RunCoroutineFiber();
+                                    });
+
+            thread.IsBackground = true;
+
             thread.Start();
+#else
+            var thread = new Task(() => 
+            {
+                _name = name;
+
+                RunCoroutineFiber();
+            }, TaskCreationOptions.LongRunning);
+
+            thread.Start();
+#endif
         }
 
         public MultiThreadRunner(string name, int intervalInMS) : this(name, false)
         {
             _interval = intervalInMS;
-            _watch = new Stopwatch();
+            _watch    = new Stopwatch();
         }
 
         public void StartCoroutineThreadSafe(IPausableTask task)
@@ -96,7 +91,7 @@ namespace Svelto.Tasks
         public void StartCoroutine(IPausableTask task)
         {
             paused = false;
-            
+
             _newTaskRoutines.Enqueue(task);
 
             ThreadUtility.MemoryBarrier();
@@ -111,20 +106,28 @@ namespace Svelto.Tasks
         public void StopAllCoroutines()
         {
             _newTaskRoutines.Clear();
-            
+
             _waitForflush = true;
-            
+
             ThreadUtility.MemoryBarrier();
         }
 
-        public void Kill()
+        public void Kill(Action onThreadKilled)
         {
-            _breakThread = true;
-            
-            UnlockThread();
-            
-            if (_watch != null)
-                _watch.Stop();
+            if (_mevent != null) //already disposed
+            {
+                _onThreadKilled = onThreadKilled;
+
+                _breakThread = true;
+
+                UnlockThread();
+
+                if (_watch != null)
+                {
+                    _watch.Stop();
+                    _watch = null;
+                }
+            }
         }
 
         void RunCoroutineFiber()
@@ -132,82 +135,80 @@ namespace Svelto.Tasks
             while (_breakThread == false)
             {
                 ThreadUtility.MemoryBarrier();
-
-				if (_newTaskRoutines.Count > 0 && false == _waitForflush) //don't start anything while flushing
+                if (_newTaskRoutines.Count > 0 && false == _waitForflush) //don't start anything while flushing
                     _coroutines.AddRange(_newTaskRoutines.DequeueAll());
 
-                for (var i = 0; i < _coroutines.Count; i++)
+                for (var i = 0; i < _coroutines.Count && (false == _breakThread); i++)
                 {
                     var enumerator = _coroutines[i];
 
-                    try
-                    { 
 #if TASKS_PROFILER_ENABLED
-                        bool result = _taskProfiler.MonitorUpdateDuration(enumerator, _name);
+                    bool result = _taskProfiler.MonitorUpdateDuration(enumerator, _name);
 #else
-                        bool result = enumerator.MoveNext();
+                    var result = enumerator.MoveNext();
 #endif
-                        if (result == false)
-                        {
-                            var disposable = enumerator as IDisposable;
-                            if (disposable != null)
-                                disposable.Dispose();
-
-                            _coroutines.UnorderedRemoveAt(i--);
-                        }
-                    }
-                    catch (Exception e)
+                    if (result == false)
                     {
-                        if (e.InnerException != null)
-                            Console.LogException(e.InnerException);
-                        else
-                            Console.LogException(e);
+                        var disposable = enumerator as IDisposable;
+                        if (disposable != null)
+                            disposable.Dispose();
 
                         _coroutines.UnorderedRemoveAt(i--);
                     }
                 }
-                
-                if (_interval > 0 && _waitForflush == false)
-                {
-                    WaitForInterval();
-                }
 
-                if (_coroutines.Count == 0)
+                ThreadUtility.MemoryBarrier();
+                if (_breakThread == false)
                 {
-                    _waitForflush = false;
-                    
-                    if (_newTaskRoutines.Count == 0)
+                    if (_interval > 0 && _waitForflush == false) WaitForInterval();
+
+                    if (_coroutines.Count == 0)
                     {
-                        _isAlive = false;
+                        _waitForflush = false;
 
-                        _lockingMechanism();
+                        if (_newTaskRoutines.Count == 0)
+                        {
+                            _isAlive = false;
+
+                            _lockingMechanism();
+                        }
+
+                        ThreadUtility.MemoryBarrier();
                     }
-                    
-                    ThreadUtility.MemoryBarrier();
                 }
             }
 
+            if (_onThreadKilled != null)
+                _onThreadKilled();
+
             if (_mevent != null)
+            {
                 _mevent.Dispose();
+                _mevent = null;
+                ThreadUtility.MemoryBarrier();
+            }
         }
 
-#if !NETFX_CORE || NET_STANDARD_2_0 || NETSTANDARD2_0
         void WaitForInterval()
         {
             _watch.Start();
             while (_watch.ElapsedMilliseconds < _interval)
                 ThreadUtility.Yield();
-            
+
             _watch.Reset();
         }
-        
+
         void QuickLockingMechanism()
         {
-            int quickIterations = 0;
+            var quickIterations = 0;
 
             while (Interlocked.CompareExchange(ref _interlock, 1, 1) != 1)
-            {
-                ThreadUtility.Yield();
+            {   //yielding here was slower on the 1 M points simulation
+                if (++quickIterations < 1000)
+                    ThreadUtility.Yield();
+                else
+                    ThreadUtility.TakeItEasy();
+                    
                 //this is quite arbitrary at the moment as 
                 //DateTime allocates a lot in UWP .Net Native
                 //and stopwatch casues several issues
@@ -217,27 +218,27 @@ namespace Svelto.Tasks
                     break;
                 }
             }
-            
+
             _interlock = 0;
         }
-#endif
 
         void RelaxedLockingMechanism()
         {
             _mevent.Wait();
-            
+
             _mevent.Reset();
         }
 
         void UnlockThread()
         {
             _interlock = 1;
+
             _mevent.Set();
-            
+
             ThreadUtility.MemoryBarrier();
         }
 
-        readonly FasterList<IPausableTask>      _coroutines = new FasterList<IPausableTask>();
+        readonly FasterList<IPausableTask>      _coroutines      = new FasterList<IPausableTask>();
         readonly ThreadSafeQueue<IPausableTask> _newTaskRoutines = new ThreadSafeQueue<IPausableTask>();
 
         string _name;
@@ -247,11 +248,12 @@ namespace Svelto.Tasks
         volatile bool _waitForflush;
         volatile bool _breakThread;
 
-        readonly ManualResetEventEx _mevent;
+        ManualResetEventEx _mevent;
 
-        readonly Action    _lockingMechanism;
-        readonly int       _interval;
-        readonly Stopwatch _watch;
+        readonly Action _lockingMechanism;
+        readonly int    _interval;
+        Stopwatch       _watch;
+        Action          _onThreadKilled;
 
 #if TASKS_PROFILER_ENABLED
         readonly TaskProfiler _taskProfiler = new TaskProfiler();

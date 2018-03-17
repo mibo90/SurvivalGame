@@ -1,6 +1,5 @@
 using System.Collections;
 using UnityEngine;
-using Svelto.ECS.Example.Survive.Enemies;
 using Svelto.Tasks;
 
 namespace Svelto.ECS.Example.Survive.Player.Gun
@@ -15,10 +14,9 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
             _taskRoutine.Start();
         }
         
-        public PlayerGunShootingEngine(EnemyKilledObservable enemyKilledObservable, ISequencer damageSequence, ISequencer ammoSequence,
+        public PlayerGunShootingEngine(ISequencer damageSequence, ISequencer ammoSequence,
             IRayCaster rayCaster, ITime time)
         {
-            _enemyKilledObservable = enemyKilledObservable;
             _enemyDamageSequence   = damageSequence;
             _ammoSequence          = ammoSequence;
             _rayCaster             = rayCaster;
@@ -89,7 +87,7 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
                 //note how the GameObject GetInstanceID is used to identify the entity as well
                 if (entityViewsDB.TryQueryEntityView(entityHit, out targetComponent))
                 {
-                    var damageInfo = new DamageInfo(playerGunComponent.damagePerShot, point, entityHit, EntityDamagedType.PlayerTarget);
+                    var damageInfo = new DamageInfo(playerGunComponent.damagePerShot, point, entityHit, EntityDamagedType.Enemy);
                     _enemyDamageSequence.Next(this, ref damageInfo);
 
                     playerGunComponent.lastTargetPosition = point;
@@ -134,7 +132,6 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
             OnBonusCollected(token);
         }
 
-        readonly EnemyKilledObservable _enemyKilledObservable;
         readonly ISequencer            _enemyDamageSequence;
         readonly ISequencer            _ammoSequence;
         readonly IRayCaster            _rayCaster;
