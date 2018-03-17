@@ -2,20 +2,12 @@ using Svelto.Tasks.Enumerators;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Svelto.ECS.Example.Survive.Player.Gun;
 
 namespace Svelto.ECS.Example.Survive.HUD
 {
-    /// <summary>
-    /// 
-    /// You may wonder why I use QueryEntityViews instead to hold a reference
-    /// of the only HudEntityView existing in the game or just using QueryEntityView.
-    /// This is for learning purposes. An engine shouldn't really have the concept
-    /// of how many entities are created. Using the QueryEntityView could be awkward
-    /// because the entity ID is needed.
-    /// Therefore using the Add/Remove callbacks is not wrong, but I try to not
-    /// promote their use. 
-    /// </summary>
-    public class HUDEngine : IQueryingEntityViewEngine, IStep<DamageInfo>
+    public class HUDEngine : IQueryingEntityViewEngine, IStep<DamageInfo>, IStep<EnemyWaveData>,
+                            IStep<BonusInfo>, IStep<GunInfo>, IStep<PowerInfo>
     {
         public IEntityViewsDB entityViewsDB { set; private get; }
 
@@ -45,21 +37,35 @@ namespace Svelto.ECS.Example.Survive.HUD
                 yield return null;
             }
         }
-
-        void OnDamageEvent(DamageInfo damaged)
+        #region "Ammo Update"
+        public void Step(ref GunInfo token, int condition)
         {
-            UpdateSlider(damaged);
+            OnGunUsed(token); 
         }
-
-        void OnDeadEvent()
+        void OnGunUsed(GunInfo gunInfo)
         {
-            var hudEntityViews = entityViewsDB.QueryEntityViews<HUDEntityView>();
+            UpdateAmmo(gunInfo);
+        }
+        void UpdateAmmo(GunInfo gunInfo)
+        {
+         var hudEntityViews = entityViewsDB.QueryEntityViews<HUDEntityView>();
             for (int i = 0; i < hudEntityViews.Count; i++)
-                hudEntityViews[i].healthSliderComponent.value = 0;
-
-            RestartLevelAfterFewSeconds().Run();
+            {
+            hudEntityViews[i].bulletCountComponent.magazineCount = gunInfo.magazineCapacity;
+            hudEntityViews[i].bulletCountComponent.currentCount = gunInfo.currentBulletCount;
+            }
         }
+        #endregion
 
+        #region "Damage update"
+        public void Step(ref DamageInfo token, int condition)
+        {
+            if (condition == DamageCondition.Damage)
+                OnDamageEvent(token);
+            else
+            if (condition == DamageCondition.Dead)
+                OnDeadEvent();
+        }
         void UpdateSlider(DamageInfo damaged)
         {
             var hudEntityViews = entityViewsDB.QueryEntityViews<HUDEntityView>();
@@ -70,13 +76,24 @@ namespace Svelto.ECS.Example.Survive.HUD
 
                 damageComponent.imageColor = damageComponent.flashColor;
 
-                var hudDamageEntityView =
-                    entityViewsDB.QueryEntityView<HUDDamageEntityView>(damaged.entityDamagedID);
-
-                guiEntityView.healthSliderComponent.value = hudDamageEntityView.healthComponent.currentHealth;
-            }
+            var hudHealthEntityView =
+             entityViewsDB.QueryEntityView<HUDHealthEntityView>(damaged.entityDamagedID);
+              var hudEntityViews = entityViewsDB.QueryEntityViews<HUDEntityView>();
+            for (int i = 0; i < hudEntityViews.Count; i++)
+            hudEntityViews[i].healthSliderComponent.value = hudHealthEntityView.healthComponent.currentHealth;
         }
 
+        void OnDamageEvent(DamageInfo damaged)
+        {
+            UpdateSlider(damaged);
+        }
+
+        void OnDeadEvent()
+        {
+            _guiEntityView.healthSliderComponent.value = 0;
+
+            RestartLevelAfterFewSeconds().Run();
+        }
         IEnumerator RestartLevelAfterFewSeconds()
         {
             _waitForSeconds.Reset(5);
@@ -91,15 +108,102 @@ namespace Svelto.ECS.Example.Survive.HUD
 
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
+        #endregion
 
-        public void Step(ref DamageInfo token, int condition)
+        #region "Wave update"
+        public void Step(ref EnemyWaveData token, int condition)
         {
-            if (condition == DamageCondition.Damage)
-                OnDamageEvent(token);
-            else
-            if (condition == DamageCondition.Dead)
-                OnDeadEvent();
+            if (condition == WaveCondition.Next || condition == WaveCondition.Last)
+            {
+                OnWaveCompleteEvent();
+            }
+            else if (condition == WaveCondition.Stop)
+                OnLevelCompleteEvent();
         }
+
+        IEnumerator NextLevel()
+        {
+            _waitForSeconds.Reset(2);
+            yield return _waitForSeconds;
+
+            _guiEntityView.HUDAnimator.trigger = "LevelComplete";
+
+            _waitForSeconds.Reset(4);
+            yield return _waitForSeconds;
+
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
+        IEnumerator NextWave()
+        {
+            
+            _guiEntityView.HUDAnimator.setBool("NextLevel", true);
+
+            _waitForSeconds.Reset(2);
+            yield return _waitForSeconds;
+
+            _guiEntityView.HUDAnimator.setBool("NextLevel", false);
+        }
+
+        void OnLevelCompleteEvent()
+        {
+            NextLevel().Run();
+        }
+        void OnWaveCompleteEvent()
+        {
+            NextWave().Run();
+        }
+        #endregion
+
+        #region "Bonus update"
+        public void Step(ref BonusInfo token, int condition)
+        {
+            if (token.bonusType == BonusType.health)
+                OnHealthBonusEvent(token);
+            else
+                OnAmmoBonusEvent(token);
+        }
+        void OnAmmoBonusEvent(BonusInfo ammoBonus)
+        {
+            UpdateAmmo(ammoBonus);
+        }
+        void UpdateAmmo(BonusInfo ammoBonus)
+        {
+            var bulletComponent = _guiEntityView.bulletCountComponent;
+            if (bulletComponent.magazineCount > bulletComponent.currentCount + ammoBonus.amount)
+                bulletComponent.currentCount = ammoBonus.amount;
+            else
+                bulletComponent.currentCount = bulletComponent.magazineCount;
+        }
+        void OnHealthBonusEvent(BonusInfo healthBonus)
+        {
+            UpdateSlider(healthBonus);
+        }
+        void UpdateSlider(BonusInfo bonus)
+        {
+            var hudHealthEntityView =
+                entityViewsDB.QueryEntityView<HUDHealthEntityView>(bonus.targetEntityID);
+            _guiEntityView.healthSliderComponent.value = hudHealthEntityView.healthComponent.currentHealth;
+        }
+
+        #endregion
+
+        #region "Power image update"
+        public void Step(ref PowerInfo token, int condition)
+        {
+            UpdatePowerUI(token).Run();
+        }
+
+        IEnumerator UpdatePowerUI(PowerInfo info)
+        {
+            _guiEntityView.powerFilledImageComponent.fillAmount = 0f;
+            while (_guiEntityView.powerFilledImageComponent.fillAmount<1f)
+            {
+                _guiEntityView.powerFilledImageComponent.fillAmount += _time.deltaTime / info.cooldown;
+                yield return null;
+            }
+            
+        }
+        #endregion
 
         readonly WaitForSecondsEnumerator  _waitForSeconds = new WaitForSecondsEnumerator(5);
         readonly ITime                     _time;

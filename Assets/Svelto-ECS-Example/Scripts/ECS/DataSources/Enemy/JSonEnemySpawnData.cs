@@ -9,6 +9,7 @@ namespace Svelto.ECS.Example.Survive
         public GameObject enemyPrefab;
         public SpawningStruct[] spawnPoints;
         public float spawnTime;
+        public float waveSpawnModiefier;
         public float timeLeft;
 
         public JSonEnemySpawnData(EnemySpawnData spawnData)
@@ -23,6 +24,7 @@ namespace Svelto.ECS.Example.Survive
             }
 
             spawnTime = spawnData.spawnTime;
+            waveSpawnModiefier = spawnData.waveSpawnModiefier;
             timeLeft = spawnTime;
         }
     }
@@ -33,6 +35,7 @@ namespace Svelto.ECS.Example.Survive
         public GameObject    enemyPrefab;
         public Transform[]   spawnPoints;
         public float         spawnTime;
+        public float        waveSpawnModiefier;
     }
 
     [Serializable]

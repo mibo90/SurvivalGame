@@ -4,26 +4,26 @@ using UnityEngine;
 
 namespace Svelto.ECS.Example.Survive.Enemies
 {
-    public class EnemyAttackEngine : SingleEntityViewEngine<EnemyTargetEntityView>, IQueryingEntityViewEngine
+    public class EnemyAttackEngine : SingleEntityViewEngine<TargetEntityView>, IQueryingEntityViewEngine
     {
         public IEntityViewsDB entityViewsDB { set; private get; }
 
         public void Ready()
-        {}
+        { }
 
-        public EnemyAttackEngine(ISequencer enemyrDamageSequence, ITime time)
+        public EnemyAttackEngine(ISequencer enemyDamageSequence, ITime time)
         {
-            _targetDamageSequence = enemyrDamageSequence;
+            _targetDamageSequence = enemyDamageSequence;
             _time = time;
             _taskRoutine = TaskRunner.Instance.AllocateNewTaskRoutine().SetEnumerator(CheckIfHittingEnemyTarget()).SetScheduler(StandardSchedulers.physicScheduler);
         }
 
-        protected override void Add(EnemyTargetEntityView entity)
+        protected override void Add(TargetEntityView entity)
         {
             _taskRoutine.Start();
         }
 
-        protected override void Remove(EnemyTargetEntityView obj)
+        protected override void Remove(TargetEntityView obj)
         {
             _taskRoutine.Stop();
         }
@@ -39,7 +39,7 @@ namespace Svelto.ECS.Example.Survive.Enemies
                 /// of the rule that every engine must use its own set of
                 /// EntityViews to promote encapsulation and modularity
                 ///
-                var targetEntitiesView = entityViewsDB.QueryEntityViews<EnemyTargetEntityView>();
+                var targetEntitiesView = entityViewsDB.QueryEntityViews<TargetEntityView>();
                 //there is a sneaky bug that can be caused by this routine. It can be solved in several
                 //ways once it has been understood.
                 //the targetDamageSequence.Next can trigger a sequence that could lead to the immediate

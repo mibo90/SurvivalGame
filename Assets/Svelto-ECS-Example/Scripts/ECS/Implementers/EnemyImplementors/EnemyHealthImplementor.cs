@@ -6,11 +6,11 @@ namespace Svelto.ECS.Example.Survive.Enemies
     {
         public int startingHealth = 100;            // The amount of health the enemy starts the game with.
         public int currentHealth { get { return _currentHealth; } set { _currentHealth = value; } }
-
+        public int maxHealth { get { return _maxHealth; } private set { _maxHealth = value; } }
         void Awake ()
         {    // Setting the current health when the enemy first spawns.
-            _currentHealth = startingHealth;
-            
+
+            _currentHealth = _maxHealth = startingHealth;
             mustDestroy = new DispatchOnChange<bool>(GetInstanceID());
             mustDestroy.NotifyOnValueSet(OnDestroyed);
         }
@@ -23,5 +23,6 @@ namespace Svelto.ECS.Example.Survive.Enemies
         public DispatchOnChange<bool> mustDestroy { get; private set; }
 
         int             _currentHealth;        // The current health the enemy has.
+        int             _maxHealth;
     }
 }

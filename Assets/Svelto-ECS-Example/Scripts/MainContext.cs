@@ -4,6 +4,8 @@ using Svelto.ECS.Example.Survive.Player;
 using Svelto.ECS.Example.Survive.Player.Gun;
 using Svelto.ECS.Example.Survive.Sound;
 using Svelto.ECS.Example.Survive.HUD;
+using Svelto.ECS.Example.Survive.Bonus;
+using Svelto.ECS.Example.Survive.Player.Power;
 using Svelto.Context;
 using Svelto.ECS.Example.Survive.Camera;
 using UnityEngine;
@@ -116,16 +118,24 @@ namespace Svelto.ECS.Example.Survive
             //between engines
             Sequencer playerDamageSequence = new Sequencer();
             Sequencer enemyDamageSequence = new Sequencer();
-            
+            Sequencer enemyWaveSequence = new Sequencer();
+            Sequencer enemySpawnSequence = new Sequencer();
+            Sequencer bonusHealthSequence = new Sequencer();
+            Sequencer bonusAmmoSequence = new Sequencer();
+            Sequencer bonusHealthSpawnSequence = new Sequencer();
+            Sequencer bonusAmmoSpawnSequence = new Sequencer();
+            Sequencer ammoUpdateSequence = new Sequencer();
+            Sequencer pushPowerSequence = new Sequencer();
+
             //wrap non testable unity static classes, so that 
             //can be mocked if needed.
             IRayCaster rayCaster = new RayCaster();
             ITime      time      = new Time();
-            
+
             //Player related engines. ALL the dependecies must be solved at this point
             //through constructor injection.
             var playerHealthEngine = new HealthEngine(playerDamageSequence);
-            var playerShootingEngine = new PlayerGunShootingEngine(enemyDamageSequence, rayCaster, time);
+            var playerShootingEngine = new PlayerGunShootingEngine(enemyDamageSequence, ammoUpdateSequence, rayCaster, time);
             var playerMovementEngine = new PlayerMovementEngine(rayCaster, time);
             var playerAnimationEngine = new PlayerAnimationEngine();
             var playerDeathEngine = new PlayerDeathEngine(entityFunctions);
@@ -136,16 +146,30 @@ namespace Svelto.ECS.Example.Survive
             var enemyHealthEngine = new HealthEngine(enemyDamageSequence);
             var enemyAttackEngine = new EnemyAttackEngine(playerDamageSequence, time);
             var enemyMovementEngine = new EnemyMovementEngine();
-            var enemySpawnerEngine = new EnemySpawnerEngine(factory, _entityFactory);
+            var enemySpawnerEngine = new EnemySpawnerEngine(enemyWaveSequence, enemySpawnSequence, factory, _entityFactory);
             var enemyDeathEngine = new EnemyDeathEngine(entityFunctions, time);
-            
+            var enemyWaveEngine = new EnemyWaveEngine(enemyWaveSequence);
+            //bonus engines
+            var bonusHealthEngine = new BonusHealthEngine(bonusHealthSequence);
+            var bonusCollectedEngine = new BonusCollectedEngine(entityFunctions);
+            var bonusAnimationEngine = new BonusAnimationEngine();
+            var bonusHealthSpawnerEngine = new BonusHealthSpawnerEngine(bonusHealthSpawnSequence,factory, _entityFactory);
+            var bonusAmmoSpawnerEngine = new BonusAmmoSpawnerEngine(bonusAmmoSpawnSequence, factory, _entityFactory);
+            var bonusAmmoEngine = new BonusAmmoEngine(bonusAmmoSequence);
+            var bonusSoundEngine = new BonusSoundEngine();
+            //powers engines
+            var pushPowerEngine = new PushPowerEngine(pushPowerSequence,time);
+            var powerSoundEngine = new PowerSoundEngine();
             //hud and sound engines
             var hudEngine = new HUDEngine(time);
+            var enemyCountEngine = new EnemyHUDEngine();
             var damageSoundEngine = new DamageSoundEngine();
             var scoreEngine = new ScoreEngine();
             
+
             //The ISequencer implementaton is very simple, but allows to perform
             //complex concatenation including loops and conditional branching.
+            #region "Setting Sequences"
             playerDamageSequence.SetSequence(
                 new Steps //sequence of steps, this is a dictionary!
                 { 
@@ -191,14 +215,121 @@ namespace Svelto.ECS.Example.Survive
                         new To
                         { 
                             {  DamageCondition.Damage, new IStep[] { enemyAnimationEngine, damageSoundEngine }  },
-                            {  DamageCondition.Dead, new IStep[] { scoreEngine, enemyMovementEngine, 
-                                enemyAnimationEngine, enemySpawnerEngine, 
-                                damageSoundEngine, enemyDeathEngine  }  },
+                            {  DamageCondition.Dead, new IStep[] { scoreEngine, enemyMovementEngine,enemyAnimationEngine, playerShootingEngine,
+                                enemySpawnerEngine, enemyCountEngine,damageSoundEngine, enemyDeathEngine }  },
                         }  
                     }  
                 }
             );
-
+            enemyWaveSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        enemySpawnerEngine,
+                        new To
+                        {
+                            enemyWaveEngine,
+                        }
+                    },
+                    {
+                        enemyWaveEngine,
+                        new To
+                        {
+                            {WaveCondition.Next, new IStep[] {enemySpawnerEngine, enemyCountEngine, hudEngine } },
+                            {WaveCondition.Last, new IStep[] { enemySpawnerEngine, enemyCountEngine, hudEngine } },
+                            {WaveCondition.Stop, new IStep[] { hudEngine } },
+                        }
+                    }
+                }
+                );
+            enemySpawnSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        enemySpawnerEngine,
+                        new To
+                        {
+                            enemyMovementEngine,
+                        }
+                    }
+                }
+                );
+            bonusHealthSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        bonusHealthEngine,
+                        new To
+                        {
+                            { new IStep[]{ playerHealthEngine,hudEngine, bonusSoundEngine,bonusAnimationEngine,
+                                bonusCollectedEngine } }
+                        }
+                    }
+                }
+                );
+            bonusHealthSpawnSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        bonusHealthSpawnerEngine,
+                        new To
+                        {
+                            bonusSoundEngine,
+                        }
+                    }
+                }
+                );
+            bonusAmmoSpawnSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        bonusAmmoSpawnerEngine,
+                        new To
+                        {
+                            bonusSoundEngine,
+                        }
+                    }
+                }
+                );
+            ammoUpdateSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        playerShootingEngine,
+                        new To
+                        {
+                            hudEngine,
+                        }
+                    }
+                }
+                );
+            bonusAmmoSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        bonusAmmoEngine,
+                        new To
+                        {
+                            { new IStep[]{ playerShootingEngine,hudEngine, bonusSoundEngine,bonusAnimationEngine,
+                                bonusCollectedEngine } }
+                        }
+                    }
+                }
+                );
+            pushPowerSequence.SetSequence(
+                new Steps
+                {
+                    {
+                        pushPowerEngine,
+                        new To
+                        {
+                            {PowerCondition.Start, new IStep[] {powerSoundEngine, hudEngine } },
+                            {PowerCondition.Stop, new IStep[] { powerSoundEngine } },
+                        }
+                    }
+                }
+                );
+            #endregion
             //Mandatory step to make engines work
             //Player engines
             _enginesRoot.AddEngine(playerMovementEngine);
@@ -209,16 +340,29 @@ namespace Svelto.ECS.Example.Survive
             _enginesRoot.AddEngine(new PlayerGunShootingFXsEngine());
             //enemy engines
             _enginesRoot.AddEngine(enemySpawnerEngine);
+            _enginesRoot.AddEngine(enemyWaveEngine);
             _enginesRoot.AddEngine(enemyAttackEngine);
             _enginesRoot.AddEngine(enemyMovementEngine);
             _enginesRoot.AddEngine(enemyAnimationEngine);
             _enginesRoot.AddEngine(enemyHealthEngine);
             _enginesRoot.AddEngine(enemyDeathEngine);
+            //bonus engines
+            _enginesRoot.AddEngine(bonusHealthEngine);
+            _enginesRoot.AddEngine(bonusAmmoEngine);
+            _enginesRoot.AddEngine(bonusCollectedEngine);
+            _enginesRoot.AddEngine(bonusAnimationEngine);
+            _enginesRoot.AddEngine(bonusHealthSpawnerEngine);
+            _enginesRoot.AddEngine(bonusAmmoSpawnerEngine);
+            //powers engines
+            _enginesRoot.AddEngine(powerSoundEngine);
+            _enginesRoot.AddEngine(pushPowerEngine);
             //other engines
             _enginesRoot.AddEngine(new CameraFollowTargetEngine(time));
             _enginesRoot.AddEngine(damageSoundEngine);
+            _enginesRoot.AddEngine(bonusSoundEngine);
             _enginesRoot.AddEngine(hudEngine);
             _enginesRoot.AddEngine(scoreEngine);
+            _enginesRoot.AddEngine(enemyCountEngine);
         }
         
         /// <summary>
@@ -264,6 +408,15 @@ namespace Svelto.ECS.Example.Survive
             //explicitly, I have to create if from the existing gameobject.
             var gun = player.GetComponentInChildren<PlayerShootingImplementor>();
             _entityFactory.BuildEntity<PlayerGunEntityDescriptor>(gun.gameObject.GetInstanceID(), new object[] {gun});
+
+            //cleared the list so I can reuse it
+            implementors.Clear();
+            // I used a implementor I know it's going to be there to find the object I was looking for and then grabed all the 
+            //implementors under it and built the entity
+            var specialPower = player.GetComponentInChildren<PushPowerImplementor>().gameObject;
+            specialPower.GetComponents(implementors);
+
+            _entityFactory.BuildEntity<PlayerPowerEntityDescriptor>(specialPower.GetInstanceID(), implementors.ToArray());
         }
 
         void BuildCameraEntity()

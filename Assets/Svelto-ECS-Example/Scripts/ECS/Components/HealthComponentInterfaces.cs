@@ -5,6 +5,7 @@ namespace Svelto.ECS.Example.Survive
     public interface IHealthComponent : IComponent
     {
         int currentHealth { get; set; }
+        int maxHealth { get;}
     }
 
     public struct DamageInfo

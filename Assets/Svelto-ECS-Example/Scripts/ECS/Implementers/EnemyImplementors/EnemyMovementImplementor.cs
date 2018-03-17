@@ -15,6 +15,7 @@ namespace Svelto.ECS.Example.Survive.Enemies
         public bool navMeshEnabled { set { _nav.enabled = value; } }
         public Vector3 navMeshDestination { set { _nav.destination = value;} }
         public bool setCapsuleAsTrigger { set {_capsuleCollider.isTrigger = value; } }
+        public float moveSpeed { get { return _nav.speed; } set { _nav.speed = value; } }
 
         void Awake ()
         {

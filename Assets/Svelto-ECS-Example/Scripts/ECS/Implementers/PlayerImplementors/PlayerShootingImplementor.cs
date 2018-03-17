@@ -8,10 +8,18 @@ namespace Svelto.ECS.Example.Survive.Player
         public int   DamagePerShot      = 20;    // The damage inflicted by each bullet.
         public float TimeBetweenBullets = 0.15f; // The time between each shot.
         public float Range              = 100f;  // The distance the gun can fire.
+        public int MagazineCapacity     = 50;   // The number of bullets in the gun.
+        
+        public PlayerShootingImplementor()
+        {
+            _currentBulletCount = MagazineCapacity;
+        }
 
         public float               timeBetweenBullets { get { return TimeBetweenBullets; } }
         public float               range              { get { return Range; } }
         public int                 damagePerShot      { get { return DamagePerShot; } }
+        public int                 magazineCapacity   { get { return MagazineCapacity; } }
+        public int                 currentBulletCount { get { return _currentBulletCount; } set { _currentBulletCount = value; } }
         public DispatchOnSet<bool> targetHit          { get { return _targetHit; } }
         public Vector3             lastTargetPosition { set; get; }
 
@@ -36,6 +44,7 @@ namespace Svelto.ECS.Example.Survive.Player
         public bool lightEnabled { set { _gunLight.enabled = value; } }
         public bool playAudio    { set { if (value == true)_gunAudio.Play(); else _gunAudio.Stop();} }
 
+
         void Awake ()
         {
             _transform = transform;
@@ -55,7 +64,7 @@ namespace Svelto.ECS.Example.Survive.Player
         AudioSource    _gunAudio;                  // Reference to the audio source.
         Light          _gunLight;                  // Reference to the light component.
         float          _effectsDisplayTime = 0.2f; // The proportion of the timeBetweenBullets that the effects will display for.
-
+        int            _currentBulletCount=0;
         DispatchOnSet<bool> _targetHit;
     }
 }

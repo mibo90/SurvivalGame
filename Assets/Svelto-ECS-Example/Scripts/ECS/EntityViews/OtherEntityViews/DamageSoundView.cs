@@ -2,7 +2,7 @@ namespace Svelto.ECS.Example.Survive.Sound
 {
     public class DamageSoundEntityView: EntityView
     {
-        public IDamageSoundComponent    audioComponent;
+        public IEntitySoundComponent    audioComponent;
         public IHealthComponent         healthComponent;
     }
 }

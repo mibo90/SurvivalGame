@@ -5,7 +5,7 @@ using Svelto.Tasks;
 namespace Svelto.ECS.Example.Survive.Player.Gun
 {
     public class PlayerGunShootingEngine : MultiEntityViewsEngine<GunEntityView, PlayerEntityView>, 
-        IQueryingEntityViewEngine
+        IQueryingEntityViewEngine, IStep<DamageInfo>, IStep<BonusInfo>
     {
         public IEntityViewsDB entityViewsDB { set; private get; }
 
@@ -14,9 +14,11 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
             _taskRoutine.Start();
         }
         
-        public PlayerGunShootingEngine(ISequencer damageSequence, IRayCaster rayCaster, ITime time)
+        public PlayerGunShootingEngine(ISequencer damageSequence, ISequencer ammoSequence,
+            IRayCaster rayCaster, ITime time)
         {
             _enemyDamageSequence   = damageSequence;
+            _ammoSequence          = ammoSequence;
             _rayCaster             = rayCaster;
             _time                  = time;
             _taskRoutine           = TaskRunner.Instance.AllocateNewTaskRoutine().SetEnumerator(Tick())
@@ -26,6 +28,9 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
         protected override void Add(GunEntityView entityView)
         {
             _playerGunEntityView = entityView;
+            var playerGunComponent = _playerGunEntityView.gunComponent;
+            var gunInfo = new GunInfo(playerGunComponent.magazineCapacity, playerGunComponent.currentBulletCount);
+            _ammoSequence.Next(this, ref gunInfo);
         }
 
         protected override void Remove(GunEntityView entityView)
@@ -51,12 +56,13 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
             
             while (true)
             {
-                var playerGunComponent = _playerGunEntityView.gunComponent;
+                var playerGunComponent = _playerGunEntityView.gunComponent;// maybe should not be in the while loop
 
                 playerGunComponent.timer += _time.deltaTime;
                 
                 if (_playerEntityView.inputComponent.fire &&
-                    playerGunComponent.timer >= _playerGunEntityView.gunComponent.timeBetweenBullets)
+                    playerGunComponent.timer >= _playerGunEntityView.gunComponent.timeBetweenBullets && 
+                    playerGunComponent.currentBulletCount>0)
                     Shoot(_playerGunEntityView);
 
                 yield return null;
@@ -69,7 +75,9 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
             var playerGunHitComponent = playerGunEntityView.gunHitTargetComponent;
 
             playerGunComponent.timer = 0;
-
+            playerGunComponent.currentBulletCount -= 1;
+            var gunInfo = new GunInfo(playerGunComponent.magazineCapacity, playerGunComponent.currentBulletCount);
+            _ammoSequence.Next(this, ref gunInfo);
             Vector3 point;
             var     entityHit = _rayCaster.CheckHit(playerGunComponent.shootRay, playerGunComponent.range, ENEMY_LAYER, SHOOTABLE_MASK | ENEMY_MASK, out point);
             
@@ -92,11 +100,45 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
             playerGunHitComponent.targetHit.value = false;
         }
 
+        void OnTargetDead(int targetID)
+        {
+            ///
+            /// Pay attention to this bit. The engine is querying a
+            /// PlayerTargetEntityView and not a EnemyEntityView.
+            /// this is more than a sophistication, it's actually the implementation
+            /// of the rule that every engine must use its own set of
+            /// EntityViews to promote encapsulation and modularity
+            ///
+            var playerTarget = entityViewsDB.QueryEntityView<PlayerTargetEntityView>(targetID);
+            var targetType   = playerTarget.playerTargetComponent.targetType;
+
+            _enemyKilledObservable.Dispatch(ref targetType);
+        }
+        void OnBonusCollected(BonusInfo info)
+        {
+            var playerGunComponent = _playerGunEntityView.gunComponent;
+            if (playerGunComponent.magazineCapacity > playerGunComponent.currentBulletCount + info.amount)
+                playerGunComponent.currentBulletCount += info.amount;
+            else
+                playerGunComponent.currentBulletCount = playerGunComponent.magazineCapacity;
+        }
+        public void Step(ref DamageInfo token, int condition)
+        {
+            OnTargetDead(token.entityDamagedID);
+        }
+
+        public void Step(ref BonusInfo token, int condition)
+        {
+            OnBonusCollected(token);
+        }
+
         readonly ISequencer            _enemyDamageSequence;
+        readonly ISequencer            _ammoSequence;
         readonly IRayCaster            _rayCaster;
 
         PlayerEntityView _playerEntityView;
         GunEntityView    _playerGunEntityView;
+        int _currentBullets;
         
         readonly ITime _time;
         readonly ITaskRoutine     _taskRoutine;

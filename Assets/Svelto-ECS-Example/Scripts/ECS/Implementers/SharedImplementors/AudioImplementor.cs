@@ -4,10 +4,10 @@ using UnityEngine;
 namespace Svelto.ECS.Example.Survive.Implementors
 {
     public class AudioImplementor : MonoBehaviour, IImplementor, 
-        IDamageSoundComponent
+        IEntitySoundComponent
     {
-        public AudioClip deathClip;                 // The sound to play when the enemy dies.
-        public AudioClip damageClip;                 // The sound to play when the enemy dies.
+        public AudioClip deathClip;                 // The sound to play when the entity dies.
+        public AudioClip damageClip;                 // The sound to play when the entity is damaged.
 
         void Awake ()
         {// Setting up the references.
@@ -30,6 +30,14 @@ namespace Svelto.ECS.Example.Survive.Implementors
                     default:
                         throw new ArgumentOutOfRangeException("value", value, null);
                 }
+            }
+        }
+
+        public bool isPlaying
+        {
+            get
+            {
+                return _audioSource.isPlaying;
             }
         }
 
