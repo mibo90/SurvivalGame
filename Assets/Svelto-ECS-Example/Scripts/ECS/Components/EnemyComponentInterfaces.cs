@@ -19,7 +19,6 @@ namespace Svelto.ECS.Example.Survive.Enemies
     {
         bool navMeshEnabled {  set; }
         Vector3 navMeshDestination { set; }
-        float moveSpeed { set; }
         bool setCapsuleAsTrigger { set; }
     }
 

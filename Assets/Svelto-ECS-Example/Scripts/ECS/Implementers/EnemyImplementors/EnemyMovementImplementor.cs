@@ -15,7 +15,6 @@ namespace Svelto.ECS.Example.Survive.Enemies
         public bool navMeshEnabled { set { _nav.enabled = value; } }
         public Vector3 navMeshDestination { set { _nav.destination = value;} }
         public bool setCapsuleAsTrigger { set {_capsuleCollider.isTrigger = value; } }
-        public float moveSpeed { set { _nav.speed = value; } }
 
         void Awake ()
         {
@@ -37,7 +36,5 @@ namespace Svelto.ECS.Example.Survive.Enemies
         }
 
         public bool isKinematic { set {_rigidBody.isKinematic = value; } }
-
-        
     }
 }

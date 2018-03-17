@@ -1,12 +1,11 @@
 using System.Collections;
 using UnityEngine;
-using Svelto.ECS.Example.Survive.Enemies;
 using Svelto.Tasks;
 
 namespace Svelto.ECS.Example.Survive.Player.Gun
 {
     public class PlayerGunShootingEngine : MultiEntityViewsEngine<GunEntityView, PlayerEntityView>, 
-        IQueryingEntityViewEngine, IStep<DamageInfo>
+        IQueryingEntityViewEngine
     {
         public IEntityViewsDB entityViewsDB { set; private get; }
 
@@ -15,9 +14,8 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
             _taskRoutine.Start();
         }
         
-        public PlayerGunShootingEngine(EnemyKilledObservable enemyKilledObservable, ISequencer damageSequence, IRayCaster rayCaster, ITime time)
+        public PlayerGunShootingEngine(ISequencer damageSequence, IRayCaster rayCaster, ITime time)
         {
-            _enemyKilledObservable = enemyKilledObservable;
             _enemyDamageSequence   = damageSequence;
             _rayCaster             = rayCaster;
             _time                  = time;
@@ -81,7 +79,7 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
                 //note how the GameObject GetInstanceID is used to identify the entity as well
                 if (entityViewsDB.TryQueryEntityView(entityHit, out targetComponent))
                 {
-                    var damageInfo = new DamageInfo(playerGunComponent.damagePerShot, point, entityHit, EntityDamagedType.PlayerTarget);
+                    var damageInfo = new DamageInfo(playerGunComponent.damagePerShot, point, entityHit, EntityDamagedType.Enemy);
                     _enemyDamageSequence.Next(this, ref damageInfo);
 
                     playerGunComponent.lastTargetPosition = point;
@@ -94,27 +92,6 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
             playerGunHitComponent.targetHit.value = false;
         }
 
-        void OnTargetDead(int targetID)
-        {
-            ///
-            /// Pay attention to this bit. The engine is querying a
-            /// PlayerTargetEntityView and not a EnemyEntityView.
-            /// this is more than a sophistication, it's actually the implementation
-            /// of the rule that every engine must use its own set of
-            /// EntityViews to promote encapsulation and modularity
-            ///
-            var playerTarget = entityViewsDB.QueryEntityView<PlayerTargetEntityView>(targetID);
-            var targetType   = playerTarget.playerTargetComponent.targetType;
-
-            _enemyKilledObservable.Dispatch(ref targetType);
-        }
-
-        public void Step(ref DamageInfo token, int condition)
-        {
-            OnTargetDead(token.entityDamagedID);
-        }
-
-        readonly EnemyKilledObservable _enemyKilledObservable;
         readonly ISequencer            _enemyDamageSequence;
         readonly IRayCaster            _rayCaster;
 
