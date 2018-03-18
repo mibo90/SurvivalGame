@@ -230,8 +230,6 @@ MonoBehaviour:
     enemySpeedPercentageGain: 1
   - numberOfEnemiesToSpawn: 20
     enemySpeedPercentageGain: 2
-  - numberOfEnemiesToSpawn: 30
-    enemySpeedPercentageGain: 3
 --- !u!114 &14871715
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3755,6 +3753,7 @@ GameObject:
   - component: {fileID: 1326773720}
   - component: {fileID: 1326773719}
   - component: {fileID: 1326773718}
+  - component: {fileID: 1326773721}
   m_Layer: 5
   m_Name: PushPowerIcon
   m_TagString: Untagged
@@ -3825,6 +3824,17 @@ CanvasRenderer:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1326773716}
+--- !u!225 &1326773721
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1326773716}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1334548029
 GameObject:
   m_ObjectHideFlags: 0
@@ -5990,6 +6000,7 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 2094257313}
+  - component: {fileID: 2094257314}
   m_Layer: 5
   m_Name: AmmoUI
   m_TagString: Untagged
@@ -6017,3 +6028,14 @@ RectTransform:
   m_AnchoredPosition: {x: -88.92999, y: 46.58499}
   m_SizeDelta: {x: 177.85999, y: 93.16998}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!225 &2094257314
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 2094257312}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0

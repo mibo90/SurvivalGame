@@ -33,14 +33,14 @@ namespace Svelto.ECS.Example.Survive.HUD
                     damageComponent.imageColor = Color.Lerp(damageComponent.imageColor, Color.clear,
                         damageComponent.speed * _time.deltaTime);
                 }
-                
+
                 yield return null;
             }
         }
         #region "Ammo Update"
         public void Step(ref GunInfo token, int condition)
         {
-            OnGunUsed(token); 
+            OnGunUsed(token);
         }
         void OnGunUsed(GunInfo gunInfo)
         {
@@ -48,11 +48,11 @@ namespace Svelto.ECS.Example.Survive.HUD
         }
         void UpdateAmmo(GunInfo gunInfo)
         {
-         var hudEntityViews = entityViewsDB.QueryEntityViews<HUDEntityView>();
+            var hudEntityViews = entityViewsDB.QueryEntityViews<HUDEntityView>();
             for (int i = 0; i < hudEntityViews.Count; i++)
             {
-            hudEntityViews[i].bulletCountComponent.magazineCount = gunInfo.magazineCapacity;
-            hudEntityViews[i].bulletCountComponent.currentCount = gunInfo.currentBulletCount;
+                hudEntityViews[i].bulletCountComponent.magazineCount = gunInfo.magazineCapacity;
+                hudEntityViews[i].bulletCountComponent.currentCount = gunInfo.currentBulletCount;
             }
         }
         #endregion
@@ -69,18 +69,15 @@ namespace Svelto.ECS.Example.Survive.HUD
         void UpdateSlider(DamageInfo damaged)
         {
             var hudEntityViews = entityViewsDB.QueryEntityViews<HUDEntityView>();
+            var hudHealthEntityView = entityViewsDB.QueryEntityView<HUDHealthEntityView>(damaged.entityDamagedID);
             for (int i = 0; i < hudEntityViews.Count; i++)
             {
                 var guiEntityView = hudEntityViews[i];
                 var damageComponent = guiEntityView.damageImageComponent;
 
                 damageComponent.imageColor = damageComponent.flashColor;
-
-            var hudHealthEntityView =
-             entityViewsDB.QueryEntityView<HUDHealthEntityView>(damaged.entityDamagedID);
-              var hudEntityViews = entityViewsDB.QueryEntityViews<HUDEntityView>();
-            for (int i = 0; i < hudEntityViews.Count; i++)
-            hudEntityViews[i].healthSliderComponent.value = hudHealthEntityView.healthComponent.currentHealth;
+                hudEntityViews[i].healthSliderComponent.value = hudHealthEntityView.healthComponent.currentHealth;
+            }
         }
 
         void OnDamageEvent(DamageInfo damaged)
@@ -90,8 +87,11 @@ namespace Svelto.ECS.Example.Survive.HUD
 
         void OnDeadEvent()
         {
-            _guiEntityView.healthSliderComponent.value = 0;
-
+            var hudEntityViews = entityViewsDB.QueryEntityViews<HUDEntityView>();
+            for (int i = 0; i < hudEntityViews.Count; i++)
+            {
+                hudEntityViews[i].healthSliderComponent.value = 0;
+            }
             RestartLevelAfterFewSeconds().Run();
         }
         IEnumerator RestartLevelAfterFewSeconds()
@@ -126,7 +126,9 @@ namespace Svelto.ECS.Example.Survive.HUD
             _waitForSeconds.Reset(2);
             yield return _waitForSeconds;
 
-            _guiEntityView.HUDAnimator.trigger = "LevelComplete";
+            var hudEntityViews = entityViewsDB.QueryEntityViews<HUDEntityView>();
+            for (int i = 0; i < hudEntityViews.Count; i++)
+                hudEntityViews[i].HUDAnimator.playAnimation = "LevelComplete";
 
             _waitForSeconds.Reset(4);
             yield return _waitForSeconds;
@@ -135,13 +137,15 @@ namespace Svelto.ECS.Example.Survive.HUD
         }
         IEnumerator NextWave()
         {
-            
-            _guiEntityView.HUDAnimator.setBool("NextLevel", true);
+            var hudEntityViews = entityViewsDB.QueryEntityViews<HUDEntityView>();
+            for (int i = 0; i < hudEntityViews.Count; i++)
+                hudEntityViews[i].HUDAnimator.setBool("NextLevel", true);
 
             _waitForSeconds.Reset(2);
             yield return _waitForSeconds;
 
-            _guiEntityView.HUDAnimator.setBool("NextLevel", false);
+            for (int i = 0; i < hudEntityViews.Count; i++)
+                hudEntityViews[i].HUDAnimator.setBool("NextLevel", false);
         }
 
         void OnLevelCompleteEvent()
@@ -168,11 +172,15 @@ namespace Svelto.ECS.Example.Survive.HUD
         }
         void UpdateAmmo(BonusInfo ammoBonus)
         {
-            var bulletComponent = _guiEntityView.bulletCountComponent;
-            if (bulletComponent.magazineCount > bulletComponent.currentCount + ammoBonus.amount)
-                bulletComponent.currentCount = ammoBonus.amount;
-            else
-                bulletComponent.currentCount = bulletComponent.magazineCount;
+            var hudEntityViews = entityViewsDB.QueryEntityViews<HUDEntityView>();
+            for (int i = 0; i < hudEntityViews.Count; i++)
+            {
+                var bulletComponent = hudEntityViews[i].bulletCountComponent;
+                if (bulletComponent.magazineCount > bulletComponent.currentCount + ammoBonus.amount)
+                    bulletComponent.currentCount = ammoBonus.amount;
+                else
+                    bulletComponent.currentCount = bulletComponent.magazineCount;
+            }
         }
         void OnHealthBonusEvent(BonusInfo healthBonus)
         {
@@ -180,9 +188,11 @@ namespace Svelto.ECS.Example.Survive.HUD
         }
         void UpdateSlider(BonusInfo bonus)
         {
+            var hudEntityViews = entityViewsDB.QueryEntityViews<HUDEntityView>();
             var hudHealthEntityView =
                 entityViewsDB.QueryEntityView<HUDHealthEntityView>(bonus.targetEntityID);
-            _guiEntityView.healthSliderComponent.value = hudHealthEntityView.healthComponent.currentHealth;
+            for (int i = 0; i < hudEntityViews.Count; i++)
+                hudEntityViews[i].healthSliderComponent.value = hudHealthEntityView.healthComponent.currentHealth;
         }
 
         #endregion
@@ -190,23 +200,27 @@ namespace Svelto.ECS.Example.Survive.HUD
         #region "Power image update"
         public void Step(ref PowerInfo token, int condition)
         {
-            UpdatePowerUI(token).Run();
+            var hudEntityViews = entityViewsDB.QueryEntityViews<HUDEntityView>();
+            for (int i = 0; i < hudEntityViews.Count; i++)
+                UpdatePowerUI(token, hudEntityViews[i]).Run();
         }
 
-        IEnumerator UpdatePowerUI(PowerInfo info)
+        IEnumerator UpdatePowerUI(PowerInfo info, HUDEntityView entityview)
         {
-            _guiEntityView.powerFilledImageComponent.fillAmount = 0f;
-            while (_guiEntityView.powerFilledImageComponent.fillAmount<1f)
+            entityview.powerFilledImageComponent.fillAmount = 0f;
+            while (entityview.powerFilledImageComponent.fillAmount < 1f)
             {
-                _guiEntityView.powerFilledImageComponent.fillAmount += _time.deltaTime / info.cooldown;
+                entityview.powerFilledImageComponent.fillAmount += _time.deltaTime / info.cooldown;
                 yield return null;
             }
-            
+
         }
         #endregion
 
-        readonly WaitForSecondsEnumerator  _waitForSeconds = new WaitForSecondsEnumerator(5);
-        readonly ITime                     _time;
+        //DataStructures.FasterReadOnlyList<HUDEntityView> hudEntityViews = new DataStructures.FasterReadOnlyList<HUDEntityView>();
+
+        readonly WaitForSecondsEnumerator _waitForSeconds = new WaitForSecondsEnumerator(5);
+        readonly ITime _time;
     }
 }
 

@@ -5,7 +5,7 @@ using Svelto.Tasks;
 namespace Svelto.ECS.Example.Survive.Player.Gun
 {
     public class PlayerGunShootingEngine : MultiEntityViewsEngine<GunEntityView, PlayerEntityView>, 
-        IQueryingEntityViewEngine, IStep<DamageInfo>, IStep<BonusInfo>
+        IQueryingEntityViewEngine, /*IStep<DamageInfo>,*/ IStep<BonusInfo>
     {
         public IEntityViewsDB entityViewsDB { set; private get; }
 
@@ -100,20 +100,20 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
             playerGunHitComponent.targetHit.value = false;
         }
 
-        void OnTargetDead(int targetID)
-        {
-            ///
-            /// Pay attention to this bit. The engine is querying a
-            /// PlayerTargetEntityView and not a EnemyEntityView.
-            /// this is more than a sophistication, it's actually the implementation
-            /// of the rule that every engine must use its own set of
-            /// EntityViews to promote encapsulation and modularity
-            ///
-            var playerTarget = entityViewsDB.QueryEntityView<PlayerTargetEntityView>(targetID);
-            var targetType   = playerTarget.playerTargetComponent.targetType;
+        //void OnTargetDead(int targetID)
+        //{
+        //    ///
+        //    /// Pay attention to this bit. The engine is querying a
+        //    /// PlayerTargetEntityView and not a EnemyEntityView.
+        //    /// this is more than a sophistication, it's actually the implementation
+        //    /// of the rule that every engine must use its own set of
+        //    /// EntityViews to promote encapsulation and modularity
+        //    ///
+        //    var playerTarget = entityViewsDB.QueryEntityView<PlayerTargetEntityView>(targetID);
+        //    var targetType   = playerTarget.playerTargetComponent.targetType;
 
-            _enemyKilledObservable.Dispatch(ref targetType);
-        }
+        //    _enemyKilledObservable.Dispatch(ref targetType);
+        //}
         void OnBonusCollected(BonusInfo info)
         {
             var playerGunComponent = _playerGunEntityView.gunComponent;
@@ -122,10 +122,10 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
             else
                 playerGunComponent.currentBulletCount = playerGunComponent.magazineCapacity;
         }
-        public void Step(ref DamageInfo token, int condition)
-        {
-            OnTargetDead(token.entityDamagedID);
-        }
+        //public void Step(ref DamageInfo token, int condition)
+        //{
+        //    OnTargetDead(token.entityDamagedID);
+        //}
 
         public void Step(ref BonusInfo token, int condition)
         {

@@ -215,7 +215,7 @@ namespace Svelto.ECS.Example.Survive
                         new To
                         { 
                             {  DamageCondition.Damage, new IStep[] { enemyAnimationEngine, damageSoundEngine }  },
-                            {  DamageCondition.Dead, new IStep[] { scoreEngine, enemyMovementEngine,enemyAnimationEngine, playerShootingEngine,
+                            {  DamageCondition.Dead, new IStep[] { scoreEngine, enemyMovementEngine,enemyAnimationEngine,
                                 enemySpawnerEngine, enemyCountEngine,damageSoundEngine, enemyDeathEngine }  },
                         }  
                     }  

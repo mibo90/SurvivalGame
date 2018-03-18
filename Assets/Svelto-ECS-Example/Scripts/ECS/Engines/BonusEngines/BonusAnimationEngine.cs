@@ -13,12 +13,12 @@ namespace Svelto.ECS.Example.Survive.Bonus
         void TriggerHealthCollectAnimation(int entityID)
         {
             var entity = entityViewsDB.QueryEntityView<BonusHealthEntityView>(entityID);
-            entity.animationComponent.trigger = "Collected";
+            entity.animationComponent.playAnimation = "Collected";
         }
         void TriggerAmmoCollectAnimation(int entityID)
         {
             var entity = entityViewsDB.QueryEntityView<BonusAmmoEntityView>(entityID);
-            entity.animationComponent.trigger = "Collected";
+            entity.animationComponent.playAnimation = "Collected";
         }
 
         public void Step(ref BonusInfo token, int condition)
